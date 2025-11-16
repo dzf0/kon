@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
-  name: 'balance',
+  name: 'bal',
   description: 'Check your balance or another user\'s balance',
   async execute({ message, args, userData }) {
     try {
