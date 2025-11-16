@@ -1,32 +1,33 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
-  name: 'bal',
-  description: 'Check your or another user\'s balance.',
-  async execute({ message, args, data }) {
-    let user = message.author;
+  name: 'balance',
+  description: 'Check your balance or another user\'s balance',
+  async execute({ message, args, userData }) {
+    try {
+      // Get the user to check balance for (mentioned user or message author)
+      const user = message.mentions.users.first() || message.author;
+      const userId = user.id;
 
-    if (args.length > 0) {
-      const userMention = message.mentions.users.first();
-      if (userMention) {
-        user = userMention;
+      // Defensive check: initialize user data if missing
+      if (!userData[userId]) {
+        userData[userId] = { balance: 0, inventory: {} };
       }
+
+      const balance = userData[userId].balance || 0;
+
+      // Create response embed
+      const embed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle(`${user.username}'s Balance`)
+        .setDescription(`💰 Balance: **${balance}** coins`)
+        .setTimestamp()
+        .setFooter({ text: 'Your friendly bot' });
+
+      await message.channel.send({ embeds: [embed] });
+    } catch (error) {
+      console.error('Error in balance command:', error);
+      message.channel.send('❌ Something went wrong while fetching balance.');
     }
-
-    if (!data[user.id] || typeof data[user.id].balance !== 'number') {
-      const noDataEmbed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('No Data Found')
-        .setDescription(`No balance data found for ${user.username}.`);
-      return message.channel.send({ embeds: [noDataEmbed] });
-    }
-
-    const balanceEmbed = new EmbedBuilder()
-      .setColor('#00BFFF')
-      .setTitle(`${user.username}'s Balance`)
-      .setDescription(`${user.username} has ${data[user.id].balance} 𝓚𝓪𝓷.`)
-      .setTimestamp();
-
-    message.channel.send({ embeds: [balanceEmbed] });
   },
 };
