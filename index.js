@@ -38,16 +38,32 @@ for (const file of commandFiles) {
   client.commands.set(command.name, command);
 }
 
-// Default rarities for keys in general
-const rarities = [
-  { name: 'Prismatic', chance: 0.001, minKan: 1000, maxKan: 2000 },
-  { name: 'Mythical', chance: 0.01, minKan: 500, maxKan: 999 },
-  { name: 'Legendary', chance: 0.05, minKan: 200, maxKan: 499 },
-  { name: 'Rare', chance: 0.15, minKan: 100, maxKan: 199 },
-  { name: 'Uncommon', chance: 0.30, minKan: 50, maxKan: 99 },
-  { name: 'Common', chance: 0.50, minKan: 10, maxKan: 49 },
-];
+function getRandomKeyDrop() {
+  const dropChance = 0.15; // 15% chance per message to drop a key
+  const roll = Math.random();
+  if (roll > dropChance) return null; // no drop
 
+  // Key rarities and their relative probabilities
+  const rarities = [
+    { name: 'prismatic', chance: 0.001 },  // 0.1%
+    { name: 'mythical', chance: 0.01 },    // 1%
+    { name: 'legendary', chance: 0.05 },   // 5%
+    { name: 'rare', chance: 0.15 },        // 15%
+    { name: 'uncommon', chance: 0.30 },    // 30%
+    { name: 'common', chance: 0.60 },      // 60%
+  ];
+
+  let rarityRoll = Math.random();
+  let cumulative = 0;
+
+  for (const rarity of rarities) {
+    cumulative += rarity.chance;
+    if (rarityRoll <= cumulative) {
+      return rarity.name;
+    }
+  }
+  return 'common'; // fallback
+}
 let data = userData.loadUserData();
 
 let currentKey = { value: null };
