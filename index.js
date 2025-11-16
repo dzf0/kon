@@ -39,7 +39,7 @@ for (const file of commandFiles) {
 }
 
 function getRandomKeyDrop() {
-  const dropChance = 0.15; // 15% chance per message to drop a key
+  const dropChance = 0.90; // 15% chance per message to drop a key
   const roll = Math.random();
   if (roll > dropChance) return null; // no drop
 
