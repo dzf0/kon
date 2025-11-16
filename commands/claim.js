@@ -34,7 +34,7 @@ module.exports = {
       // Save user data persistently
       saveUserData();
 
-      // Success embed
+      
       const successEmbed = new EmbedBuilder()
         .setColor('Green')
         .setTitle('Key Claimed')
