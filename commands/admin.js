@@ -1,20 +1,17 @@
 const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
-const path = './data.json'; // data file path
+const path = './data.json'; // Adjust if your data file is elsewhere
 
-const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your actual admin role ID
+const ADMIN_ROLE_ID = 'YOUR_ADMIN_ROLE_ID'; // Replace with your actual admin role ID
 
-const rarities = [
-  { name: 'Prismatic', chance: 0.01 },
-  { name: 'Mythical', chance: 0.05 },
-  { name: 'Legendary', chance: 0.10 },
-  { name: 'Rare', chance: 0.20 },
-  { name: 'Uncommon', chance: 0.30 },
-  { name: 'Common', chance: 0.50 },
+const validRarities = [
+  'Prismatic', 'Mythical', 'Legendary', 'Rare', 'Uncommon', 'Common'
 ];
 
-// Lowercase rarity names for case-insensitive validation
-const validRaritiesLower = rarities.map(r => r.name.toLowerCase());
+// Helper
+function toProperCase(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
 
 function loadUserData() {
   try {
@@ -39,7 +36,6 @@ module.exports = {
   name: 'admin',
   description: 'Admin commands: give/remove currency or keys, reset user data.',
   async execute({ message, args }) {
-    // Check if the user has admin role
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
@@ -78,18 +74,19 @@ module.exports = {
         });
       }
 
-      let rarity = null;
+      let rarityKey = null;
       let amountIndex = 2;
       if (type === 'keys') {
-        rarity = args[2]?.toLowerCase();
+        const rarityArg = args[2];
+        rarityKey = toProperCase(rarityArg);
         amountIndex++;
-        if (!rarity || !validRaritiesLower.includes(rarity)) {
+        if (!validRarities.includes(rarityKey)) {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setColor('Yellow')
                 .setTitle('Invalid Rarity')
-                .setDescription(`Valid rarities: ${validRaritiesLower.join(', ')}`)
+                .setDescription(`Valid rarities: ${validRarities.join(', ')}`)
             ]
           });
         }
@@ -111,21 +108,21 @@ module.exports = {
 
       const userId = userMention.id;
 
-      // Initialize user data structurally if missing
+      // Defensive initialization
       if (!data[userId] || typeof data[userId] !== 'object') data[userId] = { balance: 0, inventory: {} };
       if (!data[userId].inventory || typeof data[userId].inventory !== 'object') data[userId].inventory = {};
       if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
 
       if (subcommand === 'give') {
         if (type === 'keys') {
-          data[userId].inventory[rarity] = (data[userId].inventory[rarity] || 0) + amount;
+          data[userId].inventory[rarityKey] = (data[userId].inventory[rarityKey] || 0) + amount;
           saveUserData(data);
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setColor('Green')
                 .setTitle('Keys Given')
-                .setDescription(`Gave ${amount} ${rarity} key(s) to ${userMention.username}.`)
+                .setDescription(`Gave ${amount} ${rarityKey} key(s) to ${userMention.username}.`)
             ]
           });
         } else {
@@ -142,19 +139,19 @@ module.exports = {
         }
       } else { // remove
         if (type === 'keys') {
-          if (!data[userId].inventory[rarity] || data[userId].inventory[rarity] < amount) {
+          if (!data[userId].inventory[rarityKey] || data[userId].inventory[rarityKey] < amount) {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
                   .setColor('Red')
                   .setTitle('Insufficient Keys')
-                  .setDescription(`${userMention.username} does not have enough ${rarity} key(s).`)
+                  .setDescription(`${userMention.username} does not have enough ${rarityKey} key(s).`)
               ]
             });
           }
-          data[userId].inventory[rarity] -= amount;
-          if (data[userId].inventory[rarity] === 0) {
-            delete data[userId].inventory[rarity];
+          data[userId].inventory[rarityKey] -= amount;
+          if (data[userId].inventory[rarityKey] === 0) {
+            delete data[userId].inventory[rarityKey];
           }
           saveUserData(data);
           return message.channel.send({
@@ -162,7 +159,7 @@ module.exports = {
               new EmbedBuilder()
                 .setColor('Orange')
                 .setTitle('Keys Removed')
-                .setDescription(`Removed ${amount} ${rarity} key(s) from ${userMention.username}.`)
+                .setDescription(`Removed ${amount} ${rarityKey} key(s) from ${userMention.username}.`)
             ]
           });
         } else {
