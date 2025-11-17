@@ -34,8 +34,8 @@ for (const file of commandFiles) {
 let userData = {};
 function loadUserData() {
   try {
-    if(fs.existsSync('./data.json')) {
-      userData = JSON.parse(fs.readFileSync('./data.json', 'utf-8'));
+    if(fs.existsSync('./userdata.js')) {
+      userData = JSON.parse(fs.readFileSync('./userdata.js', 'utf-8'));
     }
   } catch (e) {
     console.error('Failed to load user data:', e);
@@ -43,7 +43,7 @@ function loadUserData() {
 }
 function saveUserData() {
   try {
-    fs.writeFileSync('./data.json', JSON.stringify(userData, null, 2));
+    fs.writeFileSync('./userdata.js', JSON.stringify(userData, null, 2));
   } catch(e) {
     console.error('Failed to save user data:', e);
   }
