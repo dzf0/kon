@@ -1,11 +1,16 @@
 const { EmbedBuilder } = require('discord.js');
 
-const ADMIN_ROLE_ID = '1439504588318314496';
+const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your admin role ID
+
+const validRarities = [
+  'prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'
+];
 
 module.exports = {
   name: 'admin',
   description: 'Admin commands: give/remove keys or currency, remove 𝓚𝓪𝓷, reset user data.',
   async execute({ message, args, data, saveUserData }) {
+    // Check if author has admin role
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
@@ -51,7 +56,7 @@ module.exports = {
       if (type === 'keys') {
         rarity = args[2]?.toLowerCase();
         amountIndex++;
-        if (!rarity) {
+        if (!rarity || !validRarities.includes(rarity)) {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -80,8 +85,14 @@ module.exports = {
       }
 
       const userId = userMention.id;
-      if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
-      if (!data[userId].inventory) data[userId].inventory = {};
+
+      // Defensive user data initialization
+      if (!data[userId] || typeof data[userId] !== 'object') {
+        data[userId] = { balance: 0, inventory: {} };
+      }
+      if (!data[userId].inventory || typeof data[userId].inventory !== 'object') {
+        data[userId].inventory = {};
+      }
 
       if (subcommand === 'give') {
         if (type === 'keys') {
@@ -172,7 +183,9 @@ module.exports = {
         });
       }
       const userId = userMention.id;
-      if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
+      if (!data[userId] || typeof data[userId] !== 'object') {
+        data[userId] = { balance: 0, inventory: {} };
+      }
       if (!data[userId].balance || data[userId].balance < amount) {
         return message.channel.send({
           embeds: [
