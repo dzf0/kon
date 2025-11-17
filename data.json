@@ -10,13 +10,19 @@
   "1349792214124986419": {
     "balance": 565824,
     "inventory": {
-      "Common": 1,
+      "Common": 2,
       "Uncommon": 0,
       "kitteh": 1,
       "Mythical": 0,
       "Rare": 0,
       "Legendary": 0,
-      "Prismatic":0
+      "Prismatic": 0
+    }
+  },
+  "1407875306651652237": {
+    "balance": 0,
+    "inventory": {
+      "prismatic": 1100
     }
   }
 }
