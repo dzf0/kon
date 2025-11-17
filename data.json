@@ -12,7 +12,8 @@
     "inventory": {
       "Common": 1,
       "Uncommon": 0,
-      "kitteh": 1
+      "kitteh": 1,
+      "mythical": 10000
     }
   }
 }
