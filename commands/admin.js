@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = './data.json'; // Adjust if your data file is elsewhere
 
-const ADMIN_ROLE_ID = 'YOUR_ADMIN_ROLE_ID'; // Replace with your actual admin role ID
+const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your actual admin role ID
 
 const validRarities = [
   'Prismatic', 'Mythical', 'Legendary', 'Rare', 'Uncommon', 'Common'

@@ -27,14 +27,14 @@ const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.existsSync(commandsPath) ? fs.readdirSync(commandsPath).filter(file => file.endsWith('.js')) : [];
 for (const file of commandFiles) {
   const command = require(path.join(commandsPath, file));
-  if(command.name && command.execute) client.commands.set(command.name, command);
+  if (command.name && command.execute) client.commands.set(command.name, command);
 }
 
 // User data stored in-memory, hook your database or file loader here
 let userData = {};
 function loadUserData() {
   try {
-    if(fs.existsSync('./userdata.js')) {
+    if (fs.existsSync('./data.json')) {
       userData = JSON.parse(fs.readFileSync('./data.json', 'utf-8'));
     }
   } catch (e) {
@@ -44,7 +44,7 @@ function loadUserData() {
 function saveUserData() {
   try {
     fs.writeFileSync('./data.json', JSON.stringify(userData, null, 2));
-  } catch(e) {
+  } catch (e) {
     console.error('Failed to save user data:', e);
   }
 }
@@ -59,6 +59,16 @@ const rarities = [
   { name: 'Uncommon', chance: 0.30 },
   { name: 'Common', chance: 0.50 },
 ];
+
+// Reward ranges based on rarity
+const rewardsByRarity = {
+  Prismatic: { min: 500, max: 1000 },
+  Mythical: { min: 300, max: 600 },
+  Legendary: { min: 200, max: 400 },
+  Rare: { min: 100, max: 200 },
+  Uncommon: { min: 50, max: 100 },
+  Common: { min: 10, max: 50 },
+};
 
 // Utility: get random rarity by chance
 function getRandomRarity() {
@@ -80,13 +90,13 @@ let guessGame = {
 };
 
 client.on('messageCreate', async (message) => {
-  if(message.author.bot) return;
+  if (message.author.bot) return;
 
-  // Existing unclaimed key expires with 5% chance on message
-  if(currentKey && !currentKey.claimed) {
-    if(Math.random() <= 0.10) {
+  // Existing unclaimed key expires with 10% chance on message
+  if (currentKey && !currentKey.claimed) {
+    if (Math.random() <= 0.10) {
       const channel = client.channels.cache.get(currentKey.channelId);
-      if(channel) {
+      if (channel) {
         const expireEmbed = new EmbedBuilder()
           .setTitle('Key Expired')
           .setDescription(`The **${currentKey.rarity}** key expired.`)
@@ -98,8 +108,8 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // Drop a new key with 5% chance if none active
-  if(!currentKey && Math.random() <= 0.10) {
+  // Drop a new key with 10% chance if none active
+  if (!currentKey && Math.random() <= 0.10) {
     const rarity = getRandomRarity();
     currentKey = { rarity, channelId: message.channel.id, claimed: false };
     const dropEmbed = new EmbedBuilder()
@@ -111,38 +121,43 @@ client.on('messageCreate', async (message) => {
   }
 
   // Guessing game passive guess detection in the right channel
-  if(guessGame.active && message.channel.id === guessGame.channelId) {
+  if (guessGame.active && message.channel.id === guessGame.channelId) {
     const guess = parseInt(message.content);
-    if(!isNaN(guess)) {
-      if(guess === guessGame.number) {
-        // Award a random rarity key (could create special guess game rarities if you want)
+    if (!isNaN(guess)) {
+      if (guess === guessGame.number) {
+        // Award a random rarity key with coins based on rarity
         const wonRarity = getRandomRarity();
-        userData[message.author.id] = userData[message.author.id] || { inventory: {} };
+        const rewardRange = rewardsByRarity[wonRarity] || { min: 10, max: 50 };
+        const rewardAmount = Math.floor(
+          Math.random() * (rewardRange.max - rewardRange.min + 1)
+        ) + rewardRange.min;
+
+        userData[message.author.id] = userData[message.author.id] || { inventory: {}, balance: 0 };
         userData[message.author.id].inventory[wonRarity] = (userData[message.author.id].inventory[wonRarity] || 0) + 1;
+        userData[message.author.id].balance += rewardAmount;
         saveUserData();
+
         const winEmbed = new EmbedBuilder()
           .setTitle('Game Winner!')
-          .setDescription(`${message.author} guessed the number **${guessGame.number}** and won a **${wonRarity}** key!`)
+          .setDescription(`${message.author} guessed the number **${guessGame.number}** and won a **${wonRarity}** key with **${rewardAmount} coins**!`)
           .setColor('Gold')
           .setTimestamp();
         message.channel.send({ embeds: [winEmbed] });
+
         guessGame.active = false;
         guessGame.number = null;
         guessGame.channelId = null;
       }
-      // Do not respond on wrong guesses
-      return;
+      return; // Ignore wrong guesses silently
     }
   }
 
   // Command handling
-  if(!message.content.startsWith(prefix)) return;
-
+  if (!message.content.startsWith(prefix)) return;
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
   const command = client.commands.get(commandName);
-  if(!command) return;
-
+  if (!command) return;
   try {
     await command.execute({
       message,
