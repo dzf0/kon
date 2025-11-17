@@ -1,10 +1,10 @@
 const { EmbedBuilder } = require('discord.js');
 
 const validRarities = [
-  'prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'
+  'Prismatic', 'Mythical', 'Legendary', 'Rare', 'Uncommon', 'Common'
 ];
 
-// Utility function: standardize rarity to format used for inventory keys
+// Helper: Converts any input to ProperCase for standardized key names
 function toProperCase(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
@@ -14,24 +14,24 @@ module.exports = {
   description: 'Open one or more keys of the given rarity to receive prizes.',
   async execute({ message, args, userData, saveUserData }) {
     try {
-      // === Parse Arguments ===
+      // Parse rarity argument and standardize
       const rarityArg = args[0];
       if (!rarityArg) {
         return message.channel.send('Please specify a key rarity to open (e.g. `!open Rare`).');
       }
-      // Standardize and validate
       const rarityKey = toProperCase(rarityArg);
-      const isValidRarity = validRarities.some(
-        r => r.toLowerCase() === rarityKey.toLowerCase()
-      );
+
+      // Validate rarity against known rarities
+      const isValidRarity = validRarities.includes(rarityKey);
       if (!isValidRarity) {
         return message.channel.send('Invalid key rarity specified.');
       }
-      // Parse amount, default to 1
+
+      // Parse key amount, default to 1
       let amount = parseInt(args[1]);
       if (isNaN(amount) || amount <= 0) amount = 1;
 
-      // === Defensive User Data Checks ===
+      // Defensive user data structure
       const userId = message.author.id;
       if (!userData || typeof userData !== 'object') {
         return message.channel.send('Bot error: user data is not available.');
@@ -46,13 +46,15 @@ module.exports = {
         userData[userId].inventory[rarityKey] = 0;
       }
 
-      // === Does User Have Enough Keys? ===
+      // Check if user has enough keys
       const currentAmount = userData[userId].inventory[rarityKey];
       if (currentAmount < amount) {
-        return message.channel.send(`You do not have enough **${rarityKey}** keys to open (**${amount}** requested, you have **${currentAmount}**).`);
+        return message.channel.send(
+          `You do not have enough **${rarityKey}** keys to open (**${amount}** requested, you have **${currentAmount}**).`
+        );
       }
 
-      // === Open Keys, Give Rewards ===
+      // Open keys and calculate rewards
       let totalReward = 0;
       const minReward = 10, maxReward = 100;
       for (let i = 0; i < amount; i++) {
