@@ -8,12 +8,15 @@
     "inventory": {}
   },
   "1349792214124986419": {
-    "balance": 10087,
+    "balance": 565824,
     "inventory": {
       "Common": 1,
       "Uncommon": 0,
       "kitteh": 1,
-      "Mythical": 10000
+      "Mythical": 0,
+      "Rare": 0,
+      "Legendary": 0,
+      "Prismatic":0
     }
   }
 }
