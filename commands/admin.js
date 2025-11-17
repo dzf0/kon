@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = './data.json'; // data.json file path
 
 const ADMIN_ROLE_ID = '1439504588318314496'; // replace with your admin role ID
-const validRarities = ['prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'];
+const validRarities = ['Prismatic', 'Mythical', 'Legendary', 'Rare', 'Uncommon', 'Common'];
 
 function loadUserData() {
   try {
