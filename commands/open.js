@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 
 const validRarities = [
-  'prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common','Common','Uncommon','Rare','Legendary','Mythical','Prismatic'
+  'prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'
 ];
 
 // Utility function: standardize rarity to format used for inventory keys
