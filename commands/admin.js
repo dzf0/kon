@@ -1,17 +1,28 @@
 const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
-const path = './data.json'; // data.json file path
+const path = './data.json'; // data file path
 
-const ADMIN_ROLE_ID = '1439504588318314496'; // replace with your admin role ID
-const validRarities = ['Prismatic', 'Mythical', 'Legendary', 'Rare', 'Uncommon', 'Common'];
+const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your actual admin role ID
+
+const rarities = [
+  { name: 'Prismatic', chance: 0.01 },
+  { name: 'Mythical', chance: 0.05 },
+  { name: 'Legendary', chance: 0.10 },
+  { name: 'Rare', chance: 0.20 },
+  { name: 'Uncommon', chance: 0.30 },
+  { name: 'Common', chance: 0.50 },
+];
+
+// Lowercase rarity names for case-insensitive validation
+const validRaritiesLower = rarities.map(r => r.name.toLowerCase());
 
 function loadUserData() {
   try {
     if (fs.existsSync(path)) {
       return JSON.parse(fs.readFileSync(path, 'utf-8'));
     }
-  } catch (err) {
-    console.error('Error loading user data:', err);
+  } catch (e) {
+    console.error('Failed to load user data:', e);
   }
   return {};
 }
@@ -19,40 +30,40 @@ function loadUserData() {
 function saveUserData(data) {
   try {
     fs.writeFileSync(path, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error('Error saving user data:', err);
+  } catch (e) {
+    console.error('Failed to save user data:', e);
   }
 }
 
 module.exports = {
   name: 'admin',
-  description: 'Admin commands (give/remove currency or keys, reset stats).',
+  description: 'Admin commands: give/remove currency or keys, reset user data.',
   async execute({ message, args }) {
+    // Check if the user has admin role
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
             .setColor('Red')
             .setTitle('Access Denied')
-            .setDescription('You need the admin role to use this command.')
+            .setDescription('Only admins can use admin commands.')
         ]
       });
     }
 
-    const data = loadUserData();
-
-    if (args.length === 0) {
+    if (args.length < 1) {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
             .setColor('Yellow')
             .setTitle('Invalid Usage')
-            .setDescription('Commands: give, remove, reset')
+            .setDescription('Valid commands: give, remove, reset')
         ]
       });
     }
 
     const subcommand = args[0].toLowerCase();
+    const data = loadUserData();
 
     if (subcommand === 'give' || subcommand === 'remove') {
       const type = args[1]?.toLowerCase();
@@ -67,18 +78,18 @@ module.exports = {
         });
       }
 
-      let rarity;
+      let rarity = null;
       let amountIndex = 2;
       if (type === 'keys') {
         rarity = args[2]?.toLowerCase();
         amountIndex++;
-        if (!rarity || !validRarities.includes(rarity)) {
+        if (!rarity || !validRaritiesLower.includes(rarity)) {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setColor('Yellow')
-                .setTitle('Invalid Usage')
-                .setDescription(`Usage: !admin ${subcommand} keys <rarity> <amount> <@user>`)
+                .setTitle('Invalid Rarity')
+                .setDescription(`Valid rarities: ${validRaritiesLower.join(', ')}`)
             ]
           });
         }
@@ -100,7 +111,7 @@ module.exports = {
 
       const userId = userMention.id;
 
-      // Defensive initialization
+      // Initialize user data structurally if missing
       if (!data[userId] || typeof data[userId] !== 'object') data[userId] = { balance: 0, inventory: {} };
       if (!data[userId].inventory || typeof data[userId].inventory !== 'object') data[userId].inventory = {};
       if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
@@ -142,7 +153,9 @@ module.exports = {
             });
           }
           data[userId].inventory[rarity] -= amount;
-          if (data[userId].inventory[rarity] === 0) delete data[userId].inventory[rarity];
+          if (data[userId].inventory[rarity] === 0) {
+            delete data[userId].inventory[rarity];
+          }
           saveUserData(data);
           return message.channel.send({
             embeds: [
@@ -152,7 +165,7 @@ module.exports = {
                 .setDescription(`Removed ${amount} ${rarity} key(s) from ${userMention.username}.`)
             ]
           });
-        } else { // currency
+        } else {
           if (data[userId].balance < amount) {
             return message.channel.send({
               embeds: [
@@ -214,7 +227,7 @@ module.exports = {
           new EmbedBuilder()
             .setColor('Red')
             .setTitle('Invalid Command')
-            .setDescription('Available commands: give, remove, reset')
+            .setDescription('Valid commands: give, remove, reset')
         ]
       });
     }
