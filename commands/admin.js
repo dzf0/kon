@@ -1,32 +1,51 @@
 const { EmbedBuilder } = require('discord.js');
+const fs = require('fs');
+const path = './data.json'; // data.json file path
 
-const ADMIN_ROLE_ID = '1439504588318314496'; // Put your admin role ID here
+const ADMIN_ROLE_ID = '1439504588318314496'; // replace with your admin role ID
+const validRarities = ['prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'];
 
-const validRarities = [
-  'prismatic', 'mythical', 'legendary', 'rare', 'uncommon', 'common'
-];
+function loadUserData() {
+  try {
+    if (fs.existsSync(path)) {
+      return JSON.parse(fs.readFileSync(path, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('Error loading user data:', err);
+  }
+  return {};
+}
+
+function saveUserData(data) {
+  try {
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('Error saving user data:', err);
+  }
+}
 
 module.exports = {
   name: 'admin',
-  description: 'Admin commands: give/remove keys or currency, reset player stats.',
-  async execute({ message, args, data, saveUserData }) {
-    // Permission check
+  description: 'Admin commands (give/remove currency or keys, reset stats).',
+  async execute({ message, args }) {
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
-            .setColor('#FF0000')
+            .setColor('Red')
             .setTitle('Access Denied')
-            .setDescription('Only admins can use admin commands.')
+            .setDescription('You need the admin role to use this command.')
         ]
       });
     }
 
-    if (args.length < 1) {
+    const data = loadUserData();
+
+    if (args.length === 0) {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
-            .setColor('#FFAA00')
+            .setColor('Yellow')
             .setTitle('Invalid Usage')
             .setDescription('Commands: give, remove, reset')
         ]
@@ -36,20 +55,19 @@ module.exports = {
     const subcommand = args[0].toLowerCase();
 
     if (subcommand === 'give' || subcommand === 'remove') {
-      // Format: !admin give|remove currency|keys [rarity] amount @user
       const type = args[1]?.toLowerCase();
       if (!['currency', 'keys'].includes(type)) {
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
-              .setColor('#FF0000')
+              .setColor('Red')
               .setTitle('Invalid Type')
-              .setDescription('Type must be "currency" or "keys".')
+              .setDescription('Type must be either "currency" or "keys".')
           ]
         });
       }
 
-      let rarity = null;
+      let rarity;
       let amountIndex = 2;
       if (type === 'keys') {
         rarity = args[2]?.toLowerCase();
@@ -58,7 +76,7 @@ module.exports = {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
-                .setColor('#FFAA00')
+                .setColor('Yellow')
                 .setTitle('Invalid Usage')
                 .setDescription(`Usage: !admin ${subcommand} keys <rarity> <amount> <@user>`)
             ]
@@ -73,7 +91,7 @@ module.exports = {
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
-              .setColor('#FFAA00')
+              .setColor('Yellow')
               .setTitle('Invalid Arguments')
               .setDescription(`Usage: !admin ${subcommand} ${type}${type === 'keys' ? ' <rarity>' : ''} <amount> <@user>`)
           ]
@@ -82,7 +100,7 @@ module.exports = {
 
       const userId = userMention.id;
 
-      // Defensive user data initialization
+      // Defensive initialization
       if (!data[userId] || typeof data[userId] !== 'object') data[userId] = { balance: 0, inventory: {} };
       if (!data[userId].inventory || typeof data[userId].inventory !== 'object') data[userId].inventory = {};
       if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
@@ -94,7 +112,7 @@ module.exports = {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
-                .setColor('#00FF00')
+                .setColor('Green')
                 .setTitle('Keys Given')
                 .setDescription(`Gave ${amount} ${rarity} key(s) to ${userMention.username}.`)
             ]
@@ -105,7 +123,7 @@ module.exports = {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
-                .setColor('#00FF00')
+                .setColor('Green')
                 .setTitle('Currency Added')
                 .setDescription(`Added ${amount} 𝓚𝓪𝓷 to ${userMention.username}.`)
             ]
@@ -117,7 +135,7 @@ module.exports = {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
-                  .setColor('#FF0000')
+                  .setColor('Red')
                   .setTitle('Insufficient Keys')
                   .setDescription(`${userMention.username} does not have enough ${rarity} key(s).`)
               ]
@@ -129,7 +147,7 @@ module.exports = {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
-                .setColor('#FFA500')
+                .setColor('Orange')
                 .setTitle('Keys Removed')
                 .setDescription(`Removed ${amount} ${rarity} key(s) from ${userMention.username}.`)
             ]
@@ -139,7 +157,7 @@ module.exports = {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
-                  .setColor('#FF0000')
+                  .setColor('Red')
                   .setTitle('Insufficient Currency')
                   .setDescription(`${userMention.username} does not have enough 𝓚𝓪𝓷.`)
               ]
@@ -150,7 +168,7 @@ module.exports = {
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
-                .setColor('#FFA500')
+                .setColor('Orange')
                 .setTitle('Currency Removed')
                 .setDescription(`Removed ${amount} 𝓚𝓪𝓷 from ${userMention.username}.`)
             ]
@@ -158,15 +176,25 @@ module.exports = {
         }
       }
     } else if (subcommand === 'reset') {
-      // Usage: !admin reset <userId>
-      const userId = args[1];
-      if (!userId || !data[userId]) {
+      const userMention = message.mentions.users.first();
+      if (!userMention) {
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
-              .setColor('#FFAA00')
-              .setTitle('Invalid User')
-              .setDescription('User data not found or invalid user ID.')
+              .setColor('Yellow')
+              .setTitle('Invalid Usage')
+              .setDescription('Usage: !admin reset <@user>')
+          ]
+        });
+      }
+      const userId = userMention.id;
+      if (!data[userId]) {
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Yellow')
+              .setTitle('User Not Found')
+              .setDescription(`No data found for user ${userMention.username}.`)
           ]
         });
       }
@@ -175,18 +203,18 @@ module.exports = {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
-            .setColor('#00FF00')
+            .setColor('Green')
             .setTitle('User Data Reset')
-            .setDescription(`User data reset for user ID ${userId}.`)
+            .setDescription(`Reset user data for ${userMention.username}.`)
         ]
       });
     } else {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
-            .setColor('#FF0000')
+            .setColor('Red')
             .setTitle('Invalid Command')
-            .setDescription('Valid admin commands: give, remove, reset')
+            .setDescription('Available commands: give, remove, reset')
         ]
       });
     }
