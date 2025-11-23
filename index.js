@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
+const keydrop = require('./keydrop'); // Import keydrop module
 
 // Start Express server to keep bot awake on some hosts
 const app = express();
@@ -50,7 +51,6 @@ function saveUserData() {
 }
 loadUserData();
 
-// Key rarities
 const rarities = [
   { name: 'Prismatic', chance: 0.01 },
   { name: 'Mythical', chance: 0.05 },
@@ -60,7 +60,6 @@ const rarities = [
   { name: 'Common', chance: 0.50 },
 ];
 
-// Reward ranges based on rarity
 const rewardsByRarity = {
   Prismatic: { min: 500, max: 1000 },
   Mythical: { min: 300, max: 600 },
@@ -70,19 +69,6 @@ const rewardsByRarity = {
   Common: { min: 10, max: 50 },
 };
 
-// Utility: get random rarity by chance
-function getRandomRarity() {
-  const roll = Math.random();
-  let cumulative = 0;
-  for (const rarity of rarities) {
-    cumulative += rarity.chance;
-    if (roll <= cumulative) return rarity.name;
-  }
-  return rarities[rarities.length - 1].name;
-}
-
-// Key state
-let currentKey = null; // { rarity, channelId, claimed }
 let guessGame = {
   active: false,
   number: null,
@@ -92,40 +78,14 @@ let guessGame = {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // Existing unclaimed key expires with 10% chance on message
-  if (currentKey && !currentKey.claimed) {
-    if (Math.random() <= 0.10) {
-      const channel = client.channels.cache.get(currentKey.channelId);
-      if (channel) {
-        const expireEmbed = new EmbedBuilder()
-          .setTitle('Key Expired')
-          .setDescription(`The **${currentKey.rarity}** key expired.`)
-          .setColor('Red')
-          .setTimestamp();
-        channel.send({ embeds: [expireEmbed] });
-      }
-      currentKey = null;
-    }
-  }
-
-  // Drop a new key with 10% chance if none active
-  if (!currentKey && Math.random() <= 0.10) {
-    const rarity = getRandomRarity();
-    currentKey = { rarity, channelId: message.channel.id, claimed: false };
-    const dropEmbed = new EmbedBuilder()
-      .setTitle('Key Dropped')
-      .setDescription(`A **${rarity}** key dropped! Type \`!claim\` to claim it!`)
-      .setColor('Green')
-      .setTimestamp();
-    message.channel.send({ embeds: [dropEmbed] });
-  }
+  // Run the key drop handler from keydrop.js
+  await keydrop.handleKeyDrop(message, client);
 
   // Guessing game passive guess detection in the right channel
   if (guessGame.active && message.channel.id === guessGame.channelId) {
     const guess = parseInt(message.content);
     if (!isNaN(guess)) {
       if (guess === guessGame.number) {
-        // Award a random rarity key with coins based on rarity
         const wonRarity = getRandomRarity();
         const rewardRange = rewardsByRarity[wonRarity] || { min: 10, max: 50 };
         const rewardAmount = Math.floor(
@@ -152,7 +112,6 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // Command handling
   if (!message.content.startsWith(prefix)) return;
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
@@ -164,7 +123,7 @@ client.on('messageCreate', async (message) => {
       args,
       userData,
       saveUserData,
-      currentKey,
+      keydrop,
       guessGame,
       rarities,
       prefix,
@@ -184,5 +143,15 @@ client.on('messageCreate', async (message) => {
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
+
+function getRandomRarity() {
+  const roll = Math.random();
+  let cumulative = 0;
+  for (const rarity of rarities) {
+    cumulative += rarity.chance;
+    if (roll <= cumulative) return rarity.name;
+  }
+  return rarities[rarities.length - 1].name;
+}
 
 client.login(process.env.DISCORD_TOKEN);

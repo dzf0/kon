@@ -1,7 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
 
-const ADMIN_ROLE_ID = 'YOUR_ADMIN_ROLE_ID_HERE';
-
 const guessGameState = {
   active: false,
   number: null,
@@ -27,10 +25,22 @@ function getRandomRarity(rarities) {
   return rarities[rarities.length - 1];
 }
 
+function addKanToUser(userId, amount, data) {
+  if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
+  if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
+  data[userId].balance += amount;
+}
+
+function addKeyToInventory(userId, rarity, quantity, data) {
+  if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
+  if (!data[userId].inventory) data[userId].inventory = {};
+  data[userId].inventory[rarity] = (data[userId].inventory[rarity] || 0) + quantity;
+}
+
 module.exports = {
   name: 'guess',
   description: 'Guess a number game with admin controls.',
-  async execute({ message, args, data, saveUserData, addKeyToInventory, ADMIN_ROLE_ID }) {
+  async execute({ message, args, data, saveUserData, ADMIN_ROLE_ID }) {
     // Admin command to stop game
     if (args.length > 0 && args[0].toLowerCase() === 'stop') {
       if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
@@ -80,15 +90,21 @@ module.exports = {
       }
 
       if (guess === guessGameState.number) {
-        // Win - give key
+        // Win - give key and Kan
         const wonRarity = getRandomRarity(guessGameRarities);
-        addKeyToInventory(message.author.id, wonRarity.name, 1);
+
+        addKeyToInventory(message.author.id, wonRarity.name, 1, data);
+
+        // Award Kan coins within rarity range
+        const kanAmount = Math.floor(Math.random() * (wonRarity.maxKan - wonRarity.minKan + 1)) + wonRarity.minKan;
+        addKanToUser(message.author.id, kanAmount, data);
+
         saveUserData(data);
 
         const winEmbed = new EmbedBuilder()
           .setColor('#00FF00')
           .setTitle('Congratulations!')
-          .setDescription(`${message.author} guessed the correct number **${guessGameState.number}** and won a **${wonRarity.name}** key!`);
+          .setDescription(`${message.author} guessed the correct number **${guessGameState.number}** and won a **${wonRarity.name}** key and **${kanAmount} Kan**!`);
 
         // End game
         guessGameState.active = false;
