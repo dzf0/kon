@@ -21,7 +21,7 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-const prefix = 'nigga ';
+const prefix = '!';
 
 // Load commands dynamically
 const commandsPath = path.join(__dirname, 'commands');
