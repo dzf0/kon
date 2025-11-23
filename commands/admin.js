@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { loadUserData, saveUserData } = require('../userdata.js'); // Import userdata functions
+const { loadUserData, saveUserData } = require('./userdata.js'); // Import userdata functions
 
 const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your admin role ID
 
