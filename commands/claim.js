@@ -1,50 +1,31 @@
 const { EmbedBuilder } = require('discord.js');
+const keydrop = require('./keydrop.js');
 
 module.exports = {
   name: 'claim',
-  description: 'Claim the dropped key',
-  async execute({ message, currentKey, userData, saveUserData }) {
-    try {
-      if (!currentKey || !currentKey.rarity || currentKey.claimed) {
-        const noKeyEmbed = new EmbedBuilder()
-          .setColor('Red')
-          .setTitle('No Active Key')
-          .setDescription('There is no key available to claim right now.')
-          .setTimestamp();
-        await message.channel.send({ embeds: [noKeyEmbed] });
-        return;
-      }
+  description: 'Claim the currently dropped key.',
+  async execute({ message, data, addKeyToInventory, saveUserData }) {
+    const userId = message.author.id;
 
-      // Defensive user data init
-      const userId = message.author.id;
-      if (!userData[userId]) {
-        userData[userId] = { balance: 0, inventory: {} };
-      }
-      if (!userData[userId].inventory) {
-        userData[userId].inventory = {};
-      }
+    if (keydrop.getCurrentKey() && !keydrop.getCurrentKey().claimed) {
+      // Claim the key
+      keydrop.claimKey(userId, data, addKeyToInventory, saveUserData);
 
-      // Add key to user's inventory
-      const rarityName = currentKey.rarity;
-      userData[userId].inventory[rarityName] = (userData[userId].inventory[rarityName] || 0) + 1;
-
-      // Mark key claimed
-      currentKey.claimed = true;
-
-      // Save user data persistently
-      saveUserData();
-
-      
-      const successEmbed = new EmbedBuilder()
+      const embed = new EmbedBuilder()
+        .setTitle('Key Claimed!')
+        .setDescription(`You claimed a key! Check \`!inventory\`.`)
         .setColor('Green')
-        .setTitle('Key Claimed')
-        .setDescription(`${message.author} has claimed the **${rarityName}** key! 🎉`)
         .setTimestamp();
 
-      await message.channel.send({ embeds: [successEmbed] });
-    } catch (error) {
-      console.error('Error in claim command:', error);
-      message.channel.send('❌ Something went wrong while trying to claim the key.');
+      return message.channel.send({ embeds: [embed] });
+    } else {
+      const embed = new EmbedBuilder()
+        .setTitle('No Active Key')
+        .setDescription('There is no key available to claim right now.')
+        .setColor('Red')
+        .setTimestamp();
+
+      return message.channel.send({ embeds: [embed] });
     }
-  },
+  }
 };

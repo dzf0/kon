@@ -1,16 +1,20 @@
+// keydrop.js
 const { EmbedBuilder } = require('discord.js');
 
-// Key rarities - must match your rarities list and chances
+// Global key state stored in memory
+let currentKey = null;
+
+// Rarity setup (should match your reward/rarity logic)
 const rarities = [
-  { name: 'Prismatic', chance: 0.01 },
-  { name: 'Mythical', chance: 0.05 },
+  { name: 'Prismatic', chance: 0.005 },
+  { name: 'Mythical', chance: 0.03 },
   { name: 'Legendary', chance: 0.10 },
-  { name: 'Rare', chance: 0.20 },
-  { name: 'Uncommon', chance: 0.30 },
-  { name: 'Common', chance: 0.50 },
+  { name: 'Rare', chance: 0.25 },
+  { name: 'Uncommon', chance: 0.27 },
+  { name: 'Common', chance: 0.33 }
 ];
 
-// Utility: get random rarity based on chance
+// Utility function
 function getRandomRarity() {
   const roll = Math.random();
   let cumulative = 0;
@@ -21,14 +25,11 @@ function getRandomRarity() {
   return rarities[rarities.length - 1].name;
 }
 
-// Key drop state
-let currentKey = null; // { rarity, channelId, claimed }
-
-// Handle message for key drop expiration and new drops
+// Call this for every new message to run keydrop checks
 async function handleKeyDrop(message, client) {
   if (message.author.bot) return;
 
-  // Existing unclaimed key expires with 10% chance
+  // Expiration: expire active key randomly (10% chance)
   if (currentKey && !currentKey.claimed) {
     if (Math.random() <= 0.10) {
       const channel = client.channels.cache.get(currentKey.channelId);
@@ -44,7 +45,7 @@ async function handleKeyDrop(message, client) {
     }
   }
 
-  // Drop a new key with 10% chance if none active
+  // Drop a new key (10% chance per message if none is active)
   if (!currentKey && Math.random() <= 0.10) {
     const rarity = getRandomRarity();
     currentKey = { rarity, channelId: message.channel.id, claimed: false };
@@ -57,23 +58,28 @@ async function handleKeyDrop(message, client) {
   }
 }
 
-// Claim the key if exists and not claimed
-function claimKey(userId) {
+// Function to claim the active key
+function claimKey(userId, data, addKeyToInventory, saveUserData) {
   if (currentKey && !currentKey.claimed) {
+    // Give key to user and save
+    addKeyToInventory(userId, currentKey.rarity, 1, data);
+    saveUserData(data);
+
+    // Mark key as claimed
     currentKey.claimed = true;
-    currentKey.claimedBy = userId;
-    return currentKey;
+    currentKey = null;
+    return true;
   }
-  return null;
+  return false;
 }
 
-// Reset current key state, e.g. if needed
-function resetKey() {
-  currentKey = null;
+// For debugging/testing: expose currentKey
+function getCurrentKey() {
+  return currentKey;
 }
 
 module.exports = {
   handleKeyDrop,
   claimKey,
-  resetKey,
+  getCurrentKey
 };
