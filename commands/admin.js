@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require('discord.js');
-const { loadUserData, saveUserData } = require('../userdata.js'); // Import userdata functions
 
 const ADMIN_ROLE_ID = '1439504588318314496'; // Replace with your admin role ID
 
@@ -14,7 +13,7 @@ function toProperCase(str) {
 module.exports = {
   name: 'admin',
   description: 'Admin commands: give/remove currency or keys, reset user data.',
-  async execute({ message, args }) {
+  async execute({ message, args, userData, saveUserData }) {
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
@@ -38,7 +37,6 @@ module.exports = {
     }
 
     const subcommand = args[0].toLowerCase();
-    const data = loadUserData();
 
     if (subcommand === 'give' || subcommand === 'remove') {
       const type = args[1]?.toLowerCase();
@@ -88,14 +86,14 @@ module.exports = {
 
       const userId = userMention.id;
 
-      if (!data[userId] || typeof data[userId] !== 'object') data[userId] = { balance: 0, inventory: {} };
-      if (!data[userId].inventory || typeof data[userId].inventory !== 'object') data[userId].inventory = {};
-      if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
+      if (!userData[userId] || typeof userData[userId] !== 'object') userData[userId] = { balance: 0, inventory: {} };
+      if (!userData[userId].inventory || typeof userData[userId].inventory !== 'object') userData[userId].inventory = {};
+      if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
 
       if (subcommand === 'give') {
         if (type === 'keys') {
-          data[userId].inventory[rarityKey] = (data[userId].inventory[rarityKey] || 0) + amount;
-          saveUserData(data);
+          userData[userId].inventory[rarityKey] = (userData[userId].inventory[rarityKey] || 0) + amount;
+          saveUserData();
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -105,8 +103,8 @@ module.exports = {
             ]
           });
         } else {
-          data[userId].balance += amount;
-          saveUserData(data);
+          userData[userId].balance += amount;
+          saveUserData();
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -118,7 +116,7 @@ module.exports = {
         }
       } else { // remove
         if (type === 'keys') {
-          if (!data[userId].inventory[rarityKey] || data[userId].inventory[rarityKey] < amount) {
+          if (!userData[userId].inventory[rarityKey] || userData[userId].inventory[rarityKey] < amount) {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
@@ -128,11 +126,11 @@ module.exports = {
               ]
             });
           }
-          data[userId].inventory[rarityKey] -= amount;
-          if (data[userId].inventory[rarityKey] === 0) {
-            delete data[userId].inventory[rarityKey];
+          userData[userId].inventory[rarityKey] -= amount;
+          if (userData[userId].inventory[rarityKey] === 0) {
+            delete userData[userId].inventory[rarityKey];
           }
-          saveUserData(data);
+          saveUserData();
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -142,7 +140,7 @@ module.exports = {
             ]
           });
         } else {
-          if (data[userId].balance < amount) {
+          if (userData[userId].balance < amount) {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
@@ -152,8 +150,8 @@ module.exports = {
               ]
             });
           }
-          data[userId].balance -= amount;
-          saveUserData(data);
+          userData[userId].balance -= amount;
+          saveUserData();
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -177,7 +175,7 @@ module.exports = {
         });
       }
       const userId = userMention.id;
-      if (!data[userId]) {
+      if (!userData[userId]) {
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
@@ -187,8 +185,8 @@ module.exports = {
           ]
         });
       }
-      delete data[userId];
-      saveUserData(data);
+      delete userData[userId];
+      saveUserData();
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
