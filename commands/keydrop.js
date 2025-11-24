@@ -1,5 +1,7 @@
-// keydrop.js
 const { EmbedBuilder } = require('discord.js');
+
+// Add this: the channel ID where keys can drop (replace with your channel's ID)
+const KEYDROP_CHANNEL_ID = '1348651274396241933'; // <-- change to actual ID
 
 // Global key state stored in memory
 let currentKey = null;
@@ -28,6 +30,9 @@ function getRandomRarity() {
 // Call this for every new message to run keydrop checks
 async function handleKeyDrop(message, client) {
   if (message.author.bot) return;
+
+  // Only allow drops and expiration messages in the keydrop channel:
+  if (message.channel.id !== KEYDROP_CHANNEL_ID) return; // <<< ADDED LINE
 
   // Expiration: expire active key randomly (10% chance)
   if (currentKey && !currentKey.claimed) {
