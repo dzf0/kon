@@ -17,7 +17,7 @@ function handValue(hand) {
 }
 
 module.exports = {
-  name: 'blackjack',
+  name: 'bj',
   description: 'Play blackjack (react for hit/stand) and win double your bet!',
   async execute({ message, args, userData, saveUserData }) {
     const bet = parseInt(args[0]);
@@ -150,3 +150,4 @@ module.exports = {
     await playGame();
   },
 };
+    

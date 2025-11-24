@@ -17,6 +17,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions, // <-- ADDED FOR REACTIONS
   ],
 });
 
@@ -132,7 +133,7 @@ client.on('messageCreate', async (message) => {
       args,
       userData,
       saveUserData,
-      addKeyToInventory, // <-- Added here!
+      addKeyToInventory,
       keydrop,
       guessGame,
       rarities,
