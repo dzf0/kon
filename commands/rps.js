@@ -1,41 +1,83 @@
 const { EmbedBuilder } = require('discord.js');
 
+const choices = {
+  rock: "🪨",
+  paper: "📄",
+  scissors: "✂️"
+};
+
+function getBotChoice() {
+  const keys = Object.keys(choices);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+function getResult(player, bot) {
+  if (player === bot) return "draw";
+  if (
+    (player === "rock" && bot === "scissors") ||
+    (player === "paper" && bot === "rock") ||
+    (player === "scissors" && bot === "paper")
+  ) return "win";
+  return "lose";
+}
+
 module.exports = {
   name: 'rps',
-  description: 'Play rock-paper-scissors with the bot.',
-  async execute({ message, args }) {
-    const choices = ['rock', 'paper', 'scissors'];
-    const userChoice = args[0]?.toLowerCase();
-
-    if (!choices.includes(userChoice)) {
-      return message.channel.send('Please choose rock, paper, or scissors. Usage: !rps <choice>');
+  description: 'Play rock paper scissors and double your bet if you win!',
+  async execute({ message, args, userData, saveUserData }) {
+    if (args.length < 2) {
+      return message.channel.send('Usage: `!rps <amount> <rock|paper|scissors>`');
     }
 
-    const botChoice = choices[Math.floor(Math.random() * choices.length)];
+    const bet = parseInt(args[0]);
+    const playerChoice = args[1].toLowerCase();
+    const userId = message.author.id;
 
-    let result = '';
-    if (userChoice === botChoice) {
-      result = "It's a tie!";
-    } else if (
-      (userChoice === 'rock' && botChoice === 'scissors') ||
-      (userChoice === 'paper' && botChoice === 'rock') ||
-      (userChoice === 'scissors' && botChoice === 'paper')
-    ) {
-      result = 'You win!';
-    } else {
-      result = 'You lose!';
+    if (isNaN(bet) || bet <= 0) {
+      return message.channel.send('Please enter a valid positive amount to bet.');
+    }
+    if (!["rock", "paper", "scissors"].includes(playerChoice)) {
+      return message.channel.send('Invalid choice. Use `rock`, `paper`, or `scissors`.');
     }
 
-    const embed = new EmbedBuilder()
+    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
+    if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
+
+    if (userData[userId].balance < bet) {
+      return message.channel.send('You do not have enough balance to place that bet.');
+    }
+
+    // Deduct bet up front
+    userData[userId].balance -= bet;
+
+    const botChoice = getBotChoice();
+    const outcome = getResult(playerChoice, botChoice);
+
+    let embed = new EmbedBuilder()
       .setTitle('Rock Paper Scissors')
       .addFields(
-        { name: 'Your Choice', value: userChoice, inline: true },
-        { name: "Bot's Choice", value: botChoice, inline: true },
-        { name: 'Result', value: result }
+        { name: 'Your Choice', value: `${choices[playerChoice]} ${playerChoice}`, inline: true },
+        { name: 'Bot Choice', value: `${choices[botChoice]} ${botChoice}`, inline: true }
       )
-      .setColor(result === 'You win!' ? '#00FF00' : result === 'You lose!' ? '#FF0000' : '#FFFF00')
       .setTimestamp();
 
+    if (outcome === "win") {
+      userData[userId].balance += bet * 2;
+      embed.setColor('#00FF00')
+        .setDescription(`You won! 🎉 You get ${bet * 2}.`);
+    } else if (outcome === "draw") {
+      userData[userId].balance += bet;
+      embed.setColor('#CCCC00')
+        .setDescription("It's a draw. Your bet was refunded.");
+    } else {
+      embed.setColor('#FF0000')
+        .setDescription("You lost your bet. 😢");
+    }
+
+    embed.addFields({ name: 'New Balance', value: userData[userId].balance.toString(), inline: false });
+
+    saveUserData();
+
     message.channel.send({ embeds: [embed] });
-  },
+  }
 };

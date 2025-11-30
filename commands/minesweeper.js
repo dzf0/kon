@@ -1,0 +1,144 @@
+const { EmbedBuilder } = require('discord.js');
+
+// Each user can have one game active; key: userId, value: gameState
+const userGames = new Map();
+
+function generateGrid(size, mineCount) {
+  let grid = Array(size).fill('safe');
+  for (let i = 0; i < mineCount; i++) grid[i] = 'mine';
+  for (let i = grid.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [grid[i], grid[j]] = [grid[j], grid[i]];
+  }
+  return grid;
+}
+
+function gridDisplay(grid, picks) {
+  return grid.map((tile, idx) => {
+    if (picks.has(idx)) {
+      return tile === 'mine' ? '💥' : '✅';
+    } else {
+      return `\`${idx + 1}\``;
+    }
+  }).join(' ');
+}
+
+module.exports = {
+  name: 'minesweeper',
+  description: 'Play a personalized minesweeper! Usage: !minesweeper start <size> <mines> <bet>',
+  async execute({ message, args, userData, saveUserData }) {
+    const sub = (args[0] || '').toLowerCase();
+    const userId = message.author.id;
+
+    // START game (any user)
+    if (sub === 'start') {
+      if (userGames.has(userId)) {
+        return message.channel.send('❌ You already have a minesweeper game in progress!');
+      }
+      const size = parseInt(args[1]);
+      const mineCount = parseInt(args[2]);
+      const bet = parseInt(args[3]);
+      if (isNaN(size) || size < 5 || size > 20) return message.channel.send('Size must be 5–20.');
+      if (isNaN(mineCount) || mineCount < 1 || mineCount >= size) return message.channel.send('Invalid mine count.');
+      if (isNaN(bet) || bet <= 0) return message.channel.send('Valid bet required.');
+
+      userData[userId] = userData[userId] || { balance: 0, inventory: {} };
+      if (userData[userId].balance < bet) return message.channel.send('You do not have enough balance for this bet.');
+
+      // Deduct bet
+      userData[userId].balance -= bet;
+      saveUserData();
+
+      userGames.set(userId, {
+        grid: generateGrid(size, mineCount),
+        picks: new Set(),
+        started: true,
+        bet,
+        mineCount,
+        size,
+        player: userId
+      });
+
+      const embed = new EmbedBuilder()
+        .setTitle('☢️ Your Minesweeper Game!')
+        .setDescription(`Grid: ${size} tiles, ${mineCount} mines\n\nType \`!minesweeper pick <tile number>\` to begin!`)
+        .addFields({ name: 'Grid', value: gridDisplay(Array(size).fill('safe'), new Set()), inline: false })
+        .setColor('#FFD700')
+        .setTimestamp();
+
+      await message.channel.send({ embeds: [embed] });
+      return;
+    }
+
+    // Picking a tile (only by game owner)
+    if (sub === 'pick') {
+      const game = userGames.get(userId);
+      if (!game || !game.started) {
+        return message.channel.send('❌ You do not have a minesweeper game running! Start with `!minesweeper start`.');
+      }
+      const pickNum = parseInt(args[1]);
+      if (isNaN(pickNum) || pickNum < 1 || pickNum > game.size) {
+        return message.channel.send(`Pick a tile between 1 and ${game.size}.`);
+      }
+      if (game.picks.has(pickNum - 1)) {
+        return message.channel.send('❌ This tile was already picked!');
+      }
+      game.picks.add(pickNum - 1);
+
+      if (game.grid[pickNum - 1] === 'mine') {
+        // Lost
+        const embed = new EmbedBuilder()
+          .setTitle('💥 Mine Hit! Game Over')
+          .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nYou hit a mine at tile ${pickNum}. Lost your bet.`)
+          .setColor('#FF0000')
+          .setTimestamp();
+        message.channel.send({ embeds: [embed] });
+        userGames.delete(userId);
+        return;
+      }
+
+      // Win: all safe tiles found
+      const safeTiles = game.grid.filter(x => x === 'safe').length;
+      if (game.picks.size >= safeTiles) {
+        const payout = game.bet * 5;
+        userData[userId].balance += payout;
+        saveUserData();
+
+        const embed = new EmbedBuilder()
+          .setTitle('🎉 Mines Cleared! You Win!')
+          .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nYou've cleared all safe tiles and win **${payout}** coins!`)
+          .setColor('#00FF00')
+          .setTimestamp();
+        message.channel.send({ embeds: [embed] });
+        userGames.delete(userId);
+        return;
+      }
+
+      // Show progress
+      const embed = new EmbedBuilder()
+        .setTitle('☢️ Minesweeper')
+        .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nPick another tile with \`!minesweeper pick <tile number>\``)
+        .setColor('#FFD700')
+        .setTimestamp();
+      message.channel.send({ embeds: [embed] });
+      return;
+    }
+
+    // CANCEL game
+    if (sub === 'cancel') {
+      if (!userGames.has(userId)) {
+        return message.channel.send('❌ You have no game to cancel.');
+      }
+      userGames.delete(userId);
+      return message.channel.send('✅ Your minesweeper game was cancelled.');
+    }
+
+    // HELP
+    return message.channel.send(
+      '**Minesweeper Commands:**\n' +
+      '`!minesweeper start <size> <mines> <bet>` - Start your own game\n' +
+      '`!minesweeper pick <tile number>` - Play your game\n' +
+      '`!minesweeper cancel` - Cancel your game'
+    );
+  }
+};
