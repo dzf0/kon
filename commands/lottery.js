@@ -19,7 +19,16 @@ module.exports = {
     // Ensure user data shape
     userData[userId] = userData[userId] || { balance: 0, inventory: {} };
 
+    // Helper: count how many tickets this user currently has
+    const getUserTicketCount = (id) =>
+      lotteryState.tickets.filter(uid => uid === id).length;
+
     if (sub === "buy") {
+      const currentTickets = getUserTicketCount(userId);
+      if (currentTickets >= 5) {
+        return message.channel.send('❌ You already own the maximum of **5** lottery tickets.');
+      }
+
       if (userData[userId].balance < LOTTERY_PRICE)
         return message.channel.send(`You need at least ${LOTTERY_PRICE} to buy a lottery ticket.`);
 
@@ -31,7 +40,7 @@ module.exports = {
 
       const boughtEmbed = new EmbedBuilder()
         .setTitle("🎟️ Lottery Ticket Bought!")
-        .setDescription(`You bought a ticket for **${LOTTERY_PRICE}**!`)
+        .setDescription(`You bought a ticket for **${LOTTERY_PRICE}**!\nYou now have **${currentTickets + 1}/5** tickets.`)
         .addFields(
           { name: 'Total Pot', value: lotteryState.pot.toString(), inline: true },
           { name: 'Total Tickets', value: lotteryState.tickets.length.toString(), inline: true }
@@ -88,7 +97,7 @@ module.exports = {
 
     // Default error/help
     return message.channel.send(
-      `Usage: \`!lottery buy\` to buy ticket (${LOTTERY_PRICE}), \`!lottery status\` to check, \`!lottery draw\` (authorized users only)`
+      `Usage: \`!lottery buy\` to buy ticket (${LOTTERY_PRICE}, max 5 per user), \`!lottery status\` to check, \`!lottery draw\` (authorized users only)`
     );
   }
 };

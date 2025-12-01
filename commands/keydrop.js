@@ -36,7 +36,7 @@ async function handleKeyDrop(message, client) {
 
   // Expiration: expire active key randomly (10% chance)
   if (currentKey && !currentKey.claimed) {
-    if (Math.random() <= 0.10) {
+    if (Math.random() <= 0.05) {
       const channel = client.channels.cache.get(currentKey.channelId);
       if (channel) {
         const expireEmbed = new EmbedBuilder()
@@ -51,7 +51,7 @@ async function handleKeyDrop(message, client) {
   }
 
   // Drop a new key (10% chance per message if none is active)
-  if (!currentKey && Math.random() <= 0.10) {
+  if (!currentKey && Math.random() <= 0.05) {
     const rarity = getRandomRarity();
     currentKey = { rarity, channelId: message.channel.id, claimed: false };
     const dropEmbed = new EmbedBuilder()
