@@ -10,10 +10,10 @@ let currentKey = null;
 const rarities = [
   { name: 'Prismatic', chance: 0.005 },
   { name: 'Mythical', chance: 0.03 },
-  { name: 'Legendary', chance: 0.10 },
-  { name: 'Rare', chance: 0.25 },
-  { name: 'Uncommon', chance: 0.27 },
-  { name: 'Common', chance: 0.33 }
+  { name: 'Legendary', chance: 0.05 },
+  { name: 'Rare', chance: 0.10 },
+  { name: 'Uncommon', chance: 0.15 },
+  { name: 'Common', chance: 0.20 }
 ];
 
 // Utility function
