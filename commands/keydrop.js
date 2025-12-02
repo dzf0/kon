@@ -8,11 +8,11 @@ let currentKey = null;
 
 // Rarity setup (should match your reward/rarity logic)
 const rarities = [
-  { name: 'Prismatic', chance: 0.005 },
-  { name: 'Mythical', chance: 0.03 },
-  { name: 'Legendary', chance: 0.05 },
-  { name: 'Rare', chance: 0.10 },
-  { name: 'Uncommon', chance: 0.15 },
+  { name: 'Prismatic', chance: 0.0001 },
+  { name: 'Mythical', chance: 0.001 },
+  { name: 'Legendary', chance: 0.01 },
+  { name: 'Rare', chance: 0.05 },
+  { name: 'Uncommon', chance: 0.10 },
   { name: 'Common', chance: 0.20 }
 ];
 
