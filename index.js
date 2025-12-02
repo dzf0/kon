@@ -72,10 +72,10 @@ loadUserData();
 const rarities = [
   { name: 'Prismatic', chance: 0.0001 },
   { name: 'Mythical', chance: 0.001 },
-  { name: 'Legendary', chance: 0.5 },
-  { name: 'Rare', chance: 0.10 },
-  { name: 'Uncommon', chance: 0.20 },
-  { name: 'Common', chance: 0.30 },
+  { name: 'Legendary', chance: 0.01 },
+  { name: 'Rare', chance: 0.05 },
+  { name: 'Uncommon', chance: 0.10 },
+  { name: 'Common', chance: 0.20 },
 ];
 
 const rewardsByRarity = {
