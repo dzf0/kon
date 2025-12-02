@@ -22,7 +22,7 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-const prefix = '!';
+const prefix = '.';
 
 // Load commands dynamically
 const commandsPath = path.join(__dirname, 'commands');
@@ -70,12 +70,12 @@ loadUserData();
 
 // Rarity and guessing-game config
 const rarities = [
-  { name: 'Prismatic', chance: 0.01 },
-  { name: 'Mythical', chance: 0.05 },
-  { name: 'Legendary', chance: 0.10 },
-  { name: 'Rare', chance: 0.20 },
-  { name: 'Uncommon', chance: 0.30 },
-  { name: 'Common', chance: 0.50 },
+  { name: 'Prismatic', chance: 0.0001 },
+  { name: 'Mythical', chance: 0.001 },
+  { name: 'Legendary', chance: 0.5 },
+  { name: 'Rare', chance: 0.10 },
+  { name: 'Uncommon', chance: 0.20 },
+  { name: 'Common', chance: 0.30 },
 ];
 
 const rewardsByRarity = {
