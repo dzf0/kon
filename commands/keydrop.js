@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 
 // Add this: the channel ID where keys can drop (replace with your channel's ID)
-const KEYDROP_CHANNEL_ID = '1405349401945178152'; // <-- change to actual ID
+const KEYDROP_CHANNEL_ID = '1401925188991582338'; // <-- change to actual ID
 
 // Global key state stored in memory
 let currentKey = null;
