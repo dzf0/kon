@@ -38,6 +38,7 @@ module.exports = {
 
     const subcommand = args[0].toLowerCase();
 
+    // ===== GIVE / REMOVE =====
     if (subcommand === 'give' || subcommand === 'remove') {
       const type = args[1]?.toLowerCase();
       if (!['currency', 'keys'].includes(type)) {
@@ -79,7 +80,9 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('Invalid Arguments')
-              .setDescription(`Usage: .admin ${subcommand} ${type}${type === 'keys' ? ' <rarity>' : ''} <amount> <@user>`)
+              .setDescription(
+                `Usage: .admin ${subcommand} ${type}${type === 'keys' ? ' <rarity>' : ''} <amount> <@user>`
+              )
           ]
         });
       }
@@ -112,7 +115,8 @@ module.exports = {
             ]
           });
         }
-      } else { // remove
+      } else {
+        // remove
         if (type === 'keys') {
           targetData.inventory = targetData.inventory || {};
           if (!targetData.inventory[rarityKey] || targetData.inventory[rarityKey] < amount) {
@@ -161,7 +165,10 @@ module.exports = {
           });
         }
       }
-    } else if (subcommand === 'reset') {
+    }
+
+    // ===== RESET =====
+    if (subcommand === 'reset') {
       const userMention = message.mentions.users.first();
       if (!userMention) {
         return message.channel.send({
@@ -185,7 +192,6 @@ module.exports = {
           ]
         });
       }
-      // Reset to fresh state
       await saveUserData(userId, { balance: 0, inventory: {} });
       return message.channel.send({
         embeds: [
@@ -195,8 +201,10 @@ module.exports = {
             .setDescription(`Reset user data for ${userMention.username}.`)
         ]
       });
-    } else if (subcommand === 'spawn') {
-      // .admin spawn <rarity> <channel_id>
+    }
+
+    // ===== SPAWN KEY =====
+    if (subcommand === 'spawn') {
       const rarityArg = args[1];
       const channelId = args[2];
 
@@ -206,7 +214,11 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('Invalid Usage')
-              .setDescription('Usage: `.admin spawn <rarity> <channel_id>`\nExample: `.admin spawn Legendary 1405349401945178152`\n\nValid rarities: ' + validRarities.join(', '))
+              .setDescription(
+                'Usage: `.admin spawn <rarity> <channel_id>`\n' +
+                'Example: `.admin spawn Legendary 1405349401945178152`\n\n' +
+                'Valid rarities: ' + validRarities.join(', ')
+              )
           ]
         });
       }
@@ -224,7 +236,6 @@ module.exports = {
         });
       }
 
-      // Check if channel exists
       const channel = message.client.channels.cache.get(channelId);
       if (!channel) {
         return message.channel.send({
@@ -237,7 +248,6 @@ module.exports = {
         });
       }
 
-      // Call spawnKey from keydrop.js
       try {
         const result = await keydrop.spawnKey(rarityKey, channelId, message.client);
 
@@ -260,15 +270,16 @@ module.exports = {
           ]
         });
       }
-    } else {
-      return message.channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor('Red')
-            .setTitle('Invalid Command')
-            .setDescription('Valid commands: give, remove, reset, spawn')
-        ]
-      });
     }
+
+    // ===== FALLBACK =====
+    return message.channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setColor('Red')
+          .setTitle('Invalid Command')
+          .setDescription('Valid commands: give, remove, reset, spawn')
+      ]
+    });
   }
 };
