@@ -47,7 +47,7 @@ async function handleKeyDrop(message, client) {
   }
 
   // 5% chance per message to spawn a new key if none active
-  if (!currentKey && Math.random() <= 0.10) {
+  if (!currentKey && Math.random() <= 0.05) {
     const rarity = getRandomRarity();
     currentKey = {
       rarity, // string like "Legendary"
