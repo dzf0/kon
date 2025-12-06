@@ -49,7 +49,13 @@ async function handleKeyDrop(message, client) {
   // 5% chance per message to spawn a new key if none active
   if (!currentKey && Math.random() <= 0.05) {
     const rarity = getRandomRarity();
-    currentKey = { rarity, channelId: message.channel.id, claimed: false };
+    currentKey = {
+      rarity, // string like "Legendary"
+      channelId: message.channel.id,
+      claimed: false,
+      spawnedBy: 'auto',
+    };
+
     const dropEmbed = new EmbedBuilder()
       .setTitle('Key Dropped')
       .setDescription(`A **${rarity}** key dropped! Type \`.claim\` to claim it!`)
@@ -62,7 +68,10 @@ async function handleKeyDrop(message, client) {
 async function spawnKey(rarity, channelId, client) {
   // rarity is a STRING like "Legendary"
   if (currentKey && !currentKey.claimed) {
-    return { success: false, message: 'A key is already active!' };
+    return {
+      success: false,
+      message: 'There is already an active key. Wait until it is claimed or expires.',
+    };
   }
 
   currentKey = { rarity, channelId, claimed: false };
@@ -74,6 +83,7 @@ async function spawnKey(rarity, channelId, client) {
       .setDescription(`An **${rarity}** key has been spawned! Type \`.claim\` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
+
     await channel.send({ embeds: [dropEmbed] });
   }
 
@@ -81,13 +91,12 @@ async function spawnKey(rarity, channelId, client) {
 }
 
 async function claimKey(userId, addKeyToInventory) {
-  if (currentKey && !currentKey.claimed) {
-    await addKeyToInventory(userId, currentKey.rarity, 1);
-    currentKey.claimed = true;
-    currentKey = null;
-    return true;
-  }
-  return false;
+  if (!currentKey || currentKey.claimed) return false;
+
+  await addKeyToInventory(userId, currentKey.rarity, 1);
+  currentKey.claimed = true;
+  currentKey = null;
+  return true;
 }
 
 function getCurrentKey() {
@@ -96,6 +105,7 @@ function getCurrentKey() {
 
 module.exports = {
   handleKeyDrop,
+  spawnKey,
   claimKey,
   getCurrentKey,
   spawnKey,
