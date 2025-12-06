@@ -8,9 +8,9 @@ const rarities = [
   { name: 'Prismatic', chance: 0.0001 },
   { name: 'Mythical', chance: 0.001 },
   { name: 'Legendary', chance: 0.01 },
-  { name: 'Rare', chance: 0.05 },
-  { name: 'Uncommon', chance: 0.10 },
-  { name: 'Common', chance: 0.20 }
+  { name: 'Rare', chance: 0.03 },
+  { name: 'Uncommon', chance: 0.5 },
+  { name: 'Common', chance: 0.10 }
 ];
 
 function getRandomRarity() {
@@ -29,7 +29,7 @@ async function handleKeyDrop(message, client) {
   if (message.channel.id !== KEYDROP_CHANNEL_ID) return;
 
   if (currentKey && !currentKey.claimed) {
-    if (Math.random() <= 0.05) {
+    if (Math.random() <= 0.03) {
       const channel = client.channels.cache.get(currentKey.channelId);
       if (channel) {
         const expireEmbed = new EmbedBuilder()
