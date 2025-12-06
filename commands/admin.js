@@ -204,7 +204,7 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('Invalid Usage')
-              .setDescription('Usage: `.admin spawn <rarity> <channel_id>` + 
+              .setDescription('Usage: `.admin spawn <rarity> <channel_id>` ' + 
                               
                               'Example: `.admin spawn Legendary 1405349401945178152` + 
                               
@@ -272,4 +272,5 @@ module.exports = {
     }
   }
 };
+
 
