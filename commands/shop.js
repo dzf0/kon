@@ -15,11 +15,15 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle('🛒 Shop')
       .setColor('#00BFFF')
-      .setDescription('Browse the items you can buy with your currency.\nUse `!buy <item name> <amount>` to purchase.')
+      .setDescription('Browse the items you can buy with your currency.\nUse `.buy <item name> <amount>` to purchase.')
       .setTimestamp();
 
     for (const item of shopItems) {
-      embed.addFields({ name: `${item.name} - ${item.price} 𝓚𝓪𝓷`, value: item.description, inline: false });
+      embed.addFields({
+        name: `${item.name} - ${item.price} 𝓚𝓪𝓷`,
+        value: item.description,
+        inline: false,
+      });
     }
 
     message.channel.send({ embeds: [embed] });

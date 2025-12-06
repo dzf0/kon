@@ -12,8 +12,8 @@ function toProperCase(str) {
 
 module.exports = {
   name: 'admin',
-  description: 'Admin commands: give/remove currency or keys, reset user data.',
-  async execute({ message, args, userData, saveUserData }) {
+  description: 'Admin commands: give/remove currency or keys, reset user data, spawn keys.',
+  async execute({ message, args, userData, saveUserData, getUserData, keydrop }) {
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
@@ -31,7 +31,7 @@ module.exports = {
           new EmbedBuilder()
             .setColor('Yellow')
             .setTitle('Invalid Usage')
-            .setDescription('Valid commands: give, remove, reset')
+            .setDescription('Valid commands: give, remove, reset, spawn')
         ]
       });
     }
@@ -79,21 +79,19 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('Invalid Arguments')
-              .setDescription(`Usage: !admin ${subcommand} ${type}${type === 'keys' ? ' <rarity>' : ''} <amount> <@user>`)
+              .setDescription(`Usage: .admin ${subcommand} ${type}${type === 'keys' ? ' <rarity>' : ''} <amount> <@user>`)
           ]
         });
       }
 
       const userId = userMention.id;
-
-      if (!userData[userId] || typeof userData[userId] !== 'object') userData[userId] = { balance: 0, inventory: {} };
-      if (!userData[userId].inventory || typeof userData[userId].inventory !== 'object') userData[userId].inventory = {};
-      if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
+      const targetData = await getUserData(userId);
 
       if (subcommand === 'give') {
         if (type === 'keys') {
-          userData[userId].inventory[rarityKey] = (userData[userId].inventory[rarityKey] || 0) + amount;
-          saveUserData();
+          targetData.inventory = targetData.inventory || {};
+          targetData.inventory[rarityKey] = (targetData.inventory[rarityKey] || 0) + amount;
+          await saveUserData(userId, { inventory: targetData.inventory });
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -103,20 +101,21 @@ module.exports = {
             ]
           });
         } else {
-          userData[userId].balance += amount;
-          saveUserData();
+          targetData.balance = (targetData.balance || 0) + amount;
+          await saveUserData(userId, { balance: targetData.balance });
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setColor('Green')
                 .setTitle('Currency Added')
-                .setDescription(`Added ${amount} 𝓚𝓪𝓷 to ${userMention.username}.`)
+                .setDescription(`Added ${amount} coins to ${userMention.username}.`)
             ]
           });
         }
       } else { // remove
         if (type === 'keys') {
-          if (!userData[userId].inventory[rarityKey] || userData[userId].inventory[rarityKey] < amount) {
+          targetData.inventory = targetData.inventory || {};
+          if (!targetData.inventory[rarityKey] || targetData.inventory[rarityKey] < amount) {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
@@ -126,11 +125,11 @@ module.exports = {
               ]
             });
           }
-          userData[userId].inventory[rarityKey] -= amount;
-          if (userData[userId].inventory[rarityKey] === 0) {
-            delete userData[userId].inventory[rarityKey];
+          targetData.inventory[rarityKey] -= amount;
+          if (targetData.inventory[rarityKey] === 0) {
+            delete targetData.inventory[rarityKey];
           }
-          saveUserData();
+          await saveUserData(userId, { inventory: targetData.inventory });
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -140,24 +139,24 @@ module.exports = {
             ]
           });
         } else {
-          if (userData[userId].balance < amount) {
+          if (targetData.balance < amount) {
             return message.channel.send({
               embeds: [
                 new EmbedBuilder()
                   .setColor('Red')
                   .setTitle('Insufficient Currency')
-                  .setDescription(`${userMention.username} does not have enough 𝓚𝓪𝓷.`)
+                  .setDescription(`${userMention.username} does not have enough coins.`)
               ]
             });
           }
-          userData[userId].balance -= amount;
-          saveUserData();
+          targetData.balance -= amount;
+          await saveUserData(userId, { balance: targetData.balance });
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
                 .setColor('Orange')
                 .setTitle('Currency Removed')
-                .setDescription(`Removed ${amount} 𝓚𝓪𝓷 from ${userMention.username}.`)
+                .setDescription(`Removed ${amount} coins from ${userMention.username}.`)
             ]
           });
         }
@@ -170,23 +169,24 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('Invalid Usage')
-              .setDescription('Usage: !admin reset <@user>')
+              .setDescription('Usage: `.admin reset <@user>`')
           ]
         });
       }
       const userId = userMention.id;
-      if (!userData[userId]) {
+      const targetData = await getUserData(userId);
+      if (!targetData || (targetData.balance === 0 && Object.keys(targetData.inventory || {}).length === 0)) {
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
               .setColor('Yellow')
               .setTitle('User Not Found')
-              .setDescription(`No data found for user ${userMention.username}.`)
+              .setDescription(`No significant data found for user ${userMention.username}.`)
           ]
         });
       }
-      delete userData[userId];
-      saveUserData();
+      // Reset to fresh state
+      await saveUserData(userId, { balance: 0, inventory: {} });
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
@@ -195,13 +195,78 @@ module.exports = {
             .setDescription(`Reset user data for ${userMention.username}.`)
         ]
       });
+    } else if (subcommand === 'spawn') {
+      // .admin spawn <rarity> <channel_id>
+      const rarityArg = args[1];
+      const channelId = args[2];
+
+      if (!rarityArg || !channelId) {
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Yellow')
+              .setTitle('Invalid Usage')
+              .setDescription('Usage: `.admin spawn <rarity> <channel_id>`\nExample: `.admin spawn Legendary 1405349401945178152`\n\nValid rarities: ' + validRarities.join(', '))
+          ]
+        });
+      }
+
+      const rarityKey = toProperCase(rarityArg);
+
+      if (!validRarities.includes(rarityKey)) {
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Red')
+              .setTitle('Invalid Rarity')
+              .setDescription(`Valid rarities: ${validRarities.join(', ')}`)
+          ]
+        });
+      }
+
+      // Check if channel exists
+      const channel = message.client.channels.cache.get(channelId);
+      if (!channel) {
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Red')
+              .setTitle('Channel Not Found')
+              .setDescription(`Channel with ID ${channelId} not found. Make sure the ID is correct.`)
+          ]
+        });
+      }
+
+      // Call spawnKey from keydrop.js
+      try {
+        const result = await keydrop.spawnKey(rarityKey, channelId, message.client);
+
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(result.success ? 'Gold' : 'Red')
+              .setTitle(result.success ? '🔑 Key Spawned' : '❌ Error')
+              .setDescription(result.message)
+          ]
+        });
+      } catch (error) {
+        console.error('Error spawning key:', error);
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Red')
+              .setTitle('Error')
+              .setDescription('Failed to spawn key. Check console for details.')
+          ]
+        });
+      }
     } else {
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
             .setColor('Red')
             .setTitle('Invalid Command')
-            .setDescription('Valid commands: give, remove, reset')
+            .setDescription('Valid commands: give, remove, reset, spawn')
         ]
       });
     }

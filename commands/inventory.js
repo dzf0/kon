@@ -5,17 +5,12 @@ module.exports = {
   description: 'Shows your inventory.',
   async execute({ message, userData }) {
     try {
-      const userId = message.author.id;
-
-      // Initialize user data if it doesn't exist
-      if (!userData[userId]) {
-        userData[userId] = { balance: 0, inventory: {} };
-      }
-      if (!userData[userId].inventory) {
-        userData[userId].inventory = {};
+      // userData is already loaded from MongoDB by index.js
+      if (!userData.inventory || typeof userData.inventory !== 'object') {
+        userData.inventory = {};
       }
 
-      const inventory = userData[userId].inventory;
+      const inventory = userData.inventory;
 
       if (Object.keys(inventory).length === 0) {
         return message.channel.send('Your inventory is empty.');

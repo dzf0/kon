@@ -20,22 +20,22 @@ module.exports = {
   description: 'Bet on red, black, green, or a number (0-36) for a big payout!',
   async execute({ message, args, userData, saveUserData }) {
     if (args.length < 2)
-      return message.channel.send('Usage: !roulette <amount> <red|black|green|0-36>');
+      return message.channel.send('Usage: `.roulette <amount> <red|black|green|0-36>`');
 
     const bet = parseInt(args[0]);
     const choiceRaw = args[1].toLowerCase();
-    const userId = message.author.id;
 
     if (isNaN(bet) || bet <= 0)
       return message.channel.send('Bet must be a positive integer!');
-    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
-    if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
 
-    if (userData[userId].balance < bet)
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
+
+    if (userData.balance < bet)
       return message.channel.send("You don't have enough balance to bet that!");
 
     // Deduct bet first
-    userData[userId].balance -= bet;
+    userData.balance -= bet;
 
     // Validate bet
     let betType;
@@ -57,31 +57,32 @@ module.exports = {
 
     if (betType === 'number' && betNumber === result.num) {
       winnings = bet * 36;
-      userData[userId].balance += winnings;
+      userData.balance += winnings;
       desc += `🎉 Lucky number! You win **${winnings}** (36x bet)!`;
     } else if (betType === 'red' && result.color === 'red') {
       winnings = bet * 2;
-      userData[userId].balance += winnings;
+      userData.balance += winnings;
       desc += `🟥 Red! You win **${winnings}** (2x bet)!`;
     } else if (betType === 'black' && result.color === 'black') {
       winnings = bet * 2;
-      userData[userId].balance += winnings;
+      userData.balance += winnings;
       desc += `⬛ Black! You win **${winnings}** (2x bet)!`;
     } else if (betType === 'green' && result.num === 0) {
       winnings = bet * 18;
-      userData[userId].balance += winnings;
+      userData.balance += winnings;
       desc += `🟩 Green zero! You win **${winnings}** (18x bet)!`;
     } else {
       desc += "You lost your bet.";
     }
 
-    saveUserData();
+    // Persist to MongoDB
+    await saveUserData({ balance: userData.balance });
 
     const embed = new EmbedBuilder()
       .setTitle('🎲 Roulette Spin 🎲')
       .setDescription(desc)
       .addFields(
-        { name: 'Your New Balance', value: userData[userId].balance.toString(), inline: true }
+        { name: 'Your New Balance', value: userData.balance.toString(), inline: true }
       )
       .setColor(winnings > 0 ? "#00FF00" : "#FF0000")
       .setTimestamp();

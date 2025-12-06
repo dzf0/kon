@@ -10,7 +10,7 @@ const shopItems = [
 module.exports = {
   name: 'buy',
   description: 'Buy items from the shop.',
-  async execute({ message, args, data, saveUserData }) {
+  async execute({ message, args, userData, saveUserData }) {
     const itemName = args[0]?.toLowerCase();
     const quantity = parseInt(args[1]) || 1;
 
@@ -18,7 +18,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor('#FFAA00')
         .setTitle('Invalid Usage')
-        .setDescription('Please specify an item to buy. Usage: !buy <item> [quantity]');
+        .setDescription('Please specify an item to buy. Usage: `.buy <item> [quantity]`');
       return message.channel.send({ embeds: [embed] });
     }
 
@@ -41,8 +41,10 @@ module.exports = {
 
     const totalCost = item.price * quantity;
 
-    if (!data[message.author.id]) data[message.author.id] = { balance: 0, inventory: {} };
-    if (data[message.author.id].balance < totalCost) {
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
+
+    if (userData.balance < totalCost) {
       const embed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('Insufficient Funds')
@@ -51,21 +53,23 @@ module.exports = {
     }
 
     // Deduct cost
-    data[message.author.id].balance -= totalCost;
+    userData.balance -= totalCost;
 
     // Add items to inventory
-    if (!data[message.author.id].inventory[item.name]) {
-      data[message.author.id].inventory[item.name] = 0;
-    }
-    data[message.author.id].inventory[item.name] += quantity;
+    userData.inventory = userData.inventory || {};
+    userData.inventory[item.name] = (userData.inventory[item.name] || 0) + quantity;
 
-    saveUserData(data);
+    // Persist to MongoDB
+    await saveUserData({
+      balance: userData.balance,
+      inventory: userData.inventory
+    });
 
     const embed = new EmbedBuilder()
       .setColor('#00FF00')
       .setTitle('Purchase Successful')
       .setDescription(`You bought ${quantity} ${item.name}(s) for ${totalCost} currency.`)
-      .addFields({ name: 'New Balance', value: data[message.author.id].balance.toString(), inline: true });
+      .addFields({ name: 'New Balance', value: userData.balance.toString(), inline: true });
 
     message.channel.send({ embeds: [embed] });
   },

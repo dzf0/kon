@@ -1,5 +1,8 @@
 const { EmbedBuilder } = require('discord.js');
 
+const GUESS_ADMIN_ROLE_ID = '1382513369801555988'; // Replace with your role ID
+const GUESS_CHANNEL_ID = '1405349401945178152'; // Replace with your game channel ID
+
 const guessGameState = {
   active: false,
   number: null,
@@ -25,25 +28,51 @@ function getRandomRarity(rarities) {
   return rarities[rarities.length - 1];
 }
 
-function addKanToUser(userId, amount, data) {
-  if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
-  if (typeof data[userId].balance !== 'number') data[userId].balance = 0;
-  data[userId].balance += amount;
-}
-
-function addKeyToInventory(userId, rarity, quantity, data) {
-  if (!data[userId]) data[userId] = { balance: 0, inventory: {} };
-  if (!data[userId].inventory) data[userId].inventory = {};
-  data[userId].inventory[rarity] = (data[userId].inventory[rarity] || 0) + quantity;
-}
-
 module.exports = {
   name: 'guess',
   description: 'Guess a number game with admin controls.',
-  async execute({ message, args, data, saveUserData, ADMIN_ROLE_ID }) {
+  async execute({ message, args, userData, saveUserData, addKeyToInventory, updateUserBalance }) {
+    const sub = (args[0] || '').toLowerCase();
+    const isAdmin = message.member.roles.cache.has(GUESS_ADMIN_ROLE_ID);
+
+    // Admin command to start game
+    if (sub === 'start') {
+      if (!isAdmin) {
+        const noPermEmbed = new EmbedBuilder()
+          .setColor('#FF0000')
+          .setTitle('Permission Denied')
+          .setDescription('Only admins can start the guessing game.');
+        return message.channel.send({ embeds: [noPermEmbed] });
+      }
+
+      // Enforce specific channel
+      if (message.channel.id !== GUESS_CHANNEL_ID) {
+        return message.channel.send(`❌ The guessing game can only be started in <#${GUESS_CHANNEL_ID}>.`);
+      }
+
+      if (guessGameState.active) {
+        const alreadyEmbed = new EmbedBuilder()
+          .setColor('#FFA500')
+          .setTitle('Game Already Running')
+          .setDescription('There is already an active guessing game.');
+        return message.channel.send({ embeds: [alreadyEmbed] });
+      }
+
+      const num = Math.floor(Math.random() * 500) + 1;
+      guessGameState.active = true;
+      guessGameState.number = num;
+      guessGameState.channelId = message.channel.id;
+
+      const startEmbed = new EmbedBuilder()
+        .setColor('#00FFFF')
+        .setTitle('Guessing Game Started!')
+        .setDescription('Guess the number between 1 and 500 by typing numbers in chat. First correct guess wins!');
+      return message.channel.send({ embeds: [startEmbed] });
+    }
+
     // Admin command to stop game
-    if (args.length > 0 && args[0].toLowerCase() === 'stop') {
-      if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
+    if (sub === 'stop') {
+      if (!isAdmin) {
         const noPermEmbed = new EmbedBuilder()
           .setColor('#FF0000')
           .setTitle('Permission Denied')
@@ -70,81 +99,16 @@ module.exports = {
       return message.channel.send({ embeds: [stoppedEmbed] });
     }
 
-    if (guessGameState.active) {
-      // Process user guess
-      if (args.length === 0) {
-        const noGuessEmbed = new EmbedBuilder()
-          .setColor('#FFAA00')
-          .setTitle('No Guess Provided')
-          .setDescription('Please provide a number to guess.');
-        return message.channel.send({ embeds: [noGuessEmbed] });
-      }
-
-      const guess = parseInt(args[0]);
-      if (isNaN(guess)) {
-        const invalidGuessEmbed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('Invalid Guess')
-          .setDescription('Your guess must be a valid number.');
-        return message.channel.send({ embeds: [invalidGuessEmbed] });
-      }
-
-      if (guess === guessGameState.number) {
-        // Win - give key and Kan
-        const wonRarity = getRandomRarity(guessGameRarities);
-
-        addKeyToInventory(message.author.id, wonRarity.name, 1, data);
-
-        // Award Kan coins within rarity range
-        const kanAmount = Math.floor(Math.random() * (wonRarity.maxKan - wonRarity.minKan + 1)) + wonRarity.minKan;
-        addKanToUser(message.author.id, kanAmount, data);
-
-        saveUserData(data);
-
-        const winEmbed = new EmbedBuilder()
-          .setColor('#00FF00')
-          .setTitle('Congratulations!')
-          .setDescription(`${message.author} guessed the correct number **${guessGameState.number}** and won a **${wonRarity.name}** key and **${kanAmount} Kan**!`);
-
-        // End game
-        guessGameState.active = false;
-        guessGameState.number = null;
-        guessGameState.channelId = null;
-
-        return message.channel.send({ embeds: [winEmbed] });
-      } else if (guess < guessGameState.number) {
-        const higherEmbed = new EmbedBuilder()
-          .setColor('#FFFF00')
-          .setDescription('Too low! Try a higher number.');
-        return message.channel.send({ embeds: [higherEmbed] });
-      } else {
-        const lowerEmbed = new EmbedBuilder()
-          .setColor('#FFFF00')
-          .setDescription('Too high! Try a lower number.');
-        return message.channel.send({ embeds: [lowerEmbed] });
-      }
-    } else {
-      // Start a new game
-      if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
-        const noPermEmbed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('Permission Denied')
-          .setDescription('Only admins can start a guessing game.');
-        return message.channel.send({ embeds: [noPermEmbed] });
-      }
-
-      const num = Math.floor(Math.random() * 500) + 1;
-      guessGameState.active = true;
-      guessGameState.number = num;
-      guessGameState.channelId = message.channel.id;
-
-      const startEmbed = new EmbedBuilder()
-        .setColor('#00FFFF')
-        .setTitle('Guessing Game Started!')
-        .setDescription('Guess the number between 1 and 500 by typing your guess in chat.');
-      return message.channel.send({ embeds: [startEmbed] });
-    }
+    // Help/default
+    return message.channel.send(
+      '**Guessing Game Commands:**\n' +
+      '`.guess start` - Start a new game (admin only, in game channel)\n' +
+      '`.guess stop` - Stop the current game (admin only)\n\n' +
+      'Players: Just type a number in the game channel while a game is active!'
+    );
   },
+
+  guessGameState,
   guessGameRarities,
   getRandomRarity,
 };

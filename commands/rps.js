@@ -26,12 +26,11 @@ module.exports = {
   description: 'Play rock paper scissors and double your bet if you win!',
   async execute({ message, args, userData, saveUserData }) {
     if (args.length < 2) {
-      return message.channel.send('Usage: `!rps <amount> <rock|paper|scissors>`');
+      return message.channel.send('Usage: `.rps <amount> <rock|paper|scissors>`');
     }
 
     const bet = parseInt(args[0]);
     const playerChoice = args[1].toLowerCase();
-    const userId = message.author.id;
 
     if (isNaN(bet) || bet <= 0) {
       return message.channel.send('Please enter a valid positive amount to bet.');
@@ -40,15 +39,15 @@ module.exports = {
       return message.channel.send('Invalid choice. Use `rock`, `paper`, or `scissors`.');
     }
 
-    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
-    if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
 
-    if (userData[userId].balance < bet) {
+    if (userData.balance < bet) {
       return message.channel.send('You do not have enough balance to place that bet.');
     }
 
     // Deduct bet up front
-    userData[userId].balance -= bet;
+    userData.balance -= bet;
 
     const botChoice = getBotChoice();
     const outcome = getResult(playerChoice, botChoice);
@@ -62,11 +61,11 @@ module.exports = {
       .setTimestamp();
 
     if (outcome === "win") {
-      userData[userId].balance += bet * 2;
+      userData.balance += bet * 2;
       embed.setColor('#00FF00')
         .setDescription(`You won! 🎉 You get ${bet * 2}.`);
     } else if (outcome === "draw") {
-      userData[userId].balance += bet;
+      userData.balance += bet;
       embed.setColor('#CCCC00')
         .setDescription("It's a draw. Your bet was refunded.");
     } else {
@@ -74,9 +73,10 @@ module.exports = {
         .setDescription("You lost your bet. 😢");
     }
 
-    embed.addFields({ name: 'New Balance', value: userData[userId].balance.toString(), inline: false });
+    embed.addFields({ name: 'New Balance', value: userData.balance.toString(), inline: false });
 
-    saveUserData();
+    // Persist to MongoDB
+    await saveUserData({ balance: userData.balance });
 
     message.channel.send({ embeds: [embed] });
   }

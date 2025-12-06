@@ -5,20 +5,19 @@ module.exports = {
   description: 'Play Higher or Lower: guess if the next number will be higher or lower!',
   async execute({ message, args, userData, saveUserData }) {
     const bet = parseInt(args[0]);
-    const userId = message.author.id;
 
     if (!bet || isNaN(bet) || bet <= 0) 
-      return message.channel.send('Usage: `!hl <amount>`');
+      return message.channel.send('Usage: `.hl <amount>`');
 
-    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
-    if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
 
-    if (userData[userId].balance < bet) 
+    if (userData.balance < bet) 
       return message.channel.send("You don't have enough balance for this bet.");
 
     // Deduct bet first
-    userData[userId].balance -= bet;
-    saveUserData();
+    userData.balance -= bet;
+    await saveUserData({ balance: userData.balance });
 
     // Start with a random number (1-99, so the next is always possible)
     let current = Math.floor(Math.random() * 99) + 1;
@@ -40,15 +39,15 @@ Streak: **0**
     await statusMsg.react('🔽');
 
     const filter = (reaction, user) =>
-      ['🔼', '🔽'].includes(reaction.emoji.name) && user.id === userId;
+      ['🔼', '🔽'].includes(reaction.emoji.name) && user.id === message.author.id;
 
     const collector = statusMsg.createReactionCollector({ filter, time: 60000 });
 
     async function endGame(won, payout, streakCount, finalNum) {
       let resultMsg;
       if (won) {
-        userData[userId].balance += payout;
-        saveUserData();
+        userData.balance += payout;
+        await saveUserData({ balance: userData.balance });
         resultMsg = `🎉 You survived ${streakCount} rounds!\nThe next number was **${finalNum}**.\n**You won ${payout}!**`;
       } else {
         resultMsg = `❌ You lost! The next number was **${finalNum}**.\nStreak: ${streakCount}. You lost your bet.`;
@@ -56,7 +55,7 @@ Streak: **0**
       const endEmbed = new EmbedBuilder()
         .setTitle('🔼 Higher or Lower 🔽 Result')
         .setDescription(resultMsg)
-        .addFields({ name: 'Balance', value: userData[userId].balance.toString(), inline: true })
+        .addFields({ name: 'Balance', value: userData.balance.toString(), inline: true })
         .setColor(won ? '#00FF00' : '#FF0000')
         .setTimestamp();
       await message.channel.send({ embeds: [endEmbed] });
@@ -70,7 +69,6 @@ Streak: **0**
       const nextNum = Math.floor(Math.random() * 100) + 1;
 
       const picked = reaction.emoji.name === '🔼' ? 'higher' : 'lower';
-      let isCorrect = false;
 
       if ((picked === 'higher' && nextNum > current) || (picked === 'lower' && nextNum < current)) {
         streak += 1;

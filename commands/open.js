@@ -26,7 +26,7 @@ module.exports = {
     try {
       const rarityArg = args[0];
       if (!rarityArg) {
-        return message.channel.send('Please specify a key rarity to open (e.g. `!open Rare`).');
+        return message.channel.send('Please specify a key rarity to open (e.g. `.open Rare`).');
       }
       const rarityKey = toProperCase(rarityArg);
 
@@ -37,21 +37,18 @@ module.exports = {
       let amount = parseInt(args[1]);
       if (isNaN(amount) || amount <= 0) amount = 1;
 
-      const userId = message.author.id;
+      // userData is already loaded from MongoDB by index.js
       if (!userData || typeof userData !== 'object') {
         return message.channel.send('Bot error: user data is not available.');
       }
-      if (!userData[userId] || typeof userData[userId] !== 'object') {
-        userData[userId] = { balance: 0, inventory: {} };
+      if (!userData.inventory || typeof userData.inventory !== 'object') {
+        userData.inventory = {};
       }
-      if (!userData[userId].inventory || typeof userData[userId].inventory !== 'object') {
-        userData[userId].inventory = {};
-      }
-      if (typeof userData[userId].inventory[rarityKey] !== 'number') {
-        userData[userId].inventory[rarityKey] = 0;
+      if (typeof userData.inventory[rarityKey] !== 'number') {
+        userData.inventory[rarityKey] = 0;
       }
 
-      const currentAmount = userData[userId].inventory[rarityKey];
+      const currentAmount = userData.inventory[rarityKey];
       if (currentAmount < amount) {
         return message.channel.send(
           `You do not have enough **${rarityKey}** keys to open (**${amount}** requested, you have **${currentAmount}**).`
@@ -70,9 +67,14 @@ module.exports = {
       // Hard cap: 2000 coins per open command
       if (totalReward > 2000) totalReward = 2000;
 
-      userData[userId].inventory[rarityKey] -= amount;
-      userData[userId].balance += totalReward;
-      saveUserData();
+      userData.inventory[rarityKey] -= amount;
+      userData.balance = (userData.balance || 0) + totalReward;
+
+      // Persist to MongoDB
+      await saveUserData({
+        inventory: userData.inventory,
+        balance: userData.balance,
+      });
 
       const embed = new EmbedBuilder()
         .setColor('Gold')
@@ -82,8 +84,8 @@ module.exports = {
           `key${amount > 1 ? 's' : ''} and received **${totalReward} coins**!`
         )
         .addFields(
-          { name: 'Keys left', value: `${userData[userId].inventory[rarityKey]}`, inline: true },
-          { name: 'New Balance', value: `${userData[userId].balance} coins`, inline: true }
+          { name: 'Keys left', value: `${userData.inventory[rarityKey]}`, inline: true },
+          { name: 'New Balance', value: `${userData.balance} coins`, inline: true }
         )
         .setTimestamp();
 

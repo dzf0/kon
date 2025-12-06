@@ -16,7 +16,7 @@ function scrambleWord(word) {
 
 module.exports = {
   name: 'wordscramble',
-  description: 'Start a word scramble game in the general channel. Usage: !wordscramble start <word>',
+  description: 'Start a word scramble game in the general channel. Usage: .wordscramble start <word>',
   async execute({ message, args, userData, saveUserData, client }) {
     const sub = (args[0] || '').toLowerCase();
 
@@ -32,7 +32,7 @@ module.exports = {
 
       const word = args.slice(1).join('').toLowerCase();
       if (!word || word.length < 3) {
-        return message.channel.send('Usage: `!wordscramble start <word>` (word must be at least 3 letters, no spaces)');
+        return message.channel.send('Usage: `.wordscramble start <word>` (word must be at least 3 letters, no spaces)');
       }
 
       if (!/^[a-z]+$/.test(word)) {
@@ -56,7 +56,9 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setTitle('🧩 Word Scramble! 🧩')
-        .setDescription(`Unscramble the letters!\n\n**${scrambled.toUpperCase()}**\n\n_Type your answer in chat! First correct answer wins!_`)
+        .setDescription(
+          `Unscramble the letters!\n\n**${scrambled.toUpperCase()}**\n\n_Type your answer in chat! First correct answer wins!_`
+        )
         .setColor('#6495ED')
         .setFooter({ text: 'No hints. Good luck!' })
         .setTimestamp();
@@ -69,14 +71,17 @@ module.exports = {
 
       collector.on('collect', async m => {
         const userId = m.author.id;
-        userData[userId] = userData[userId] || { balance: 0, inventory: {} };
         const reward = 200;
-        userData[userId].balance += reward;
-        saveUserData();
+
+        // Update MongoDB (userData already fetched from MongoDB in index.js)
+        userData.balance = (userData.balance || 0) + reward;
+        await saveUserData({ balance: userData.balance });
 
         const winEmbed = new EmbedBuilder()
           .setTitle('🎉 Word Solved!')
-          .setDescription(`${m.author} solved "**${word.toUpperCase()}**" and won **${reward}** coins!`)
+          .setDescription(
+            `${m.author} solved "**${word.toUpperCase()}**" and won **${reward}** coins!`
+          )
           .setColor('#32CD32')
           .setTimestamp();
         await gameChannel.send({ embeds: [winEmbed] });
@@ -116,8 +121,8 @@ module.exports = {
     // Help/default
     return message.channel.send(
       '**Word Scramble Commands:**\n' +
-      '`!wordscramble start <word>` - Start a scramble (authorized role, any channel)\n' +
-      '`!wordscramble cancel` - Cancel active scramble (authorized role)'
+      '`.wordscramble start <word>` - Start a scramble (authorized role, any channel)\n' +
+      '`.wordscramble cancel` - Cancel active scramble (authorized role)'
     );
-  }
+  },
 };

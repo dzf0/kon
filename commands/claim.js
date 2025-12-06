@@ -4,25 +4,22 @@ const keydrop = require('./keydrop.js');
 module.exports = {
   name: 'claim',
   description: 'Claim the currently dropped key.',
-  async execute({ message, userData, addKeyToInventory, saveUserData }) {
-    // Your keydrop.js should expose currentKey and claimKey!
+  async execute({ message, addKeyToInventory }) {
+    // Get the current key from keydrop
     const currentKey = keydrop.getCurrentKey();
 
     if (currentKey && !currentKey.claimed) {
-      // Claim the key, award to the user, and persist
-      keydrop.claimKey(
-        message.author.id,
-        userData,
-        addKeyToInventory,
-        saveUserData
-      );
+      // Claim the key and award to the user (async)
+      const success = await keydrop.claimKey(message.author.id, addKeyToInventory);
 
-      const embed = new EmbedBuilder()
-        .setTitle('Key Claimed!')
-        .setDescription(`You claimed a **${currentKey.rarity}** key! Check your inventory with \`!inventory\`.`)
-        .setColor('Green')
-        .setTimestamp();
-      return message.channel.send({ embeds: [embed] });
+      if (success) {
+        const embed = new EmbedBuilder()
+          .setTitle('🔑 Key Claimed!')
+          .setDescription(`You claimed a **${currentKey.rarity}** key! Check your inventory with \`.inventory\`.`)
+          .setColor('Green')
+          .setTimestamp();
+        return message.channel.send({ embeds: [embed] });
+      }
     } else {
       const embed = new EmbedBuilder()
         .setTitle('No Active Key')

@@ -11,13 +11,13 @@ const lotteryState = {
 
 module.exports = {
   name: 'lottery',
-  description: 'Join the lottery or draw a winner. Usage: !lottery buy | !lottery status | !lottery draw',
-  async execute({ message, args, userData, saveUserData }) {
+  description: 'Join the lottery or draw a winner. Usage: .lottery buy | .lottery status | .lottery draw',
+  async execute({ message, args, userData, saveUserData, updateUserBalance }) {
     const userId = message.author.id;
     const sub = (args[0] || '').toLowerCase();
 
-    // Ensure user data shape
-    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
 
     // Helper: count how many tickets this user currently has
     const getUserTicketCount = (id) =>
@@ -29,14 +29,16 @@ module.exports = {
         return message.channel.send('❌ You already own the maximum of **5** lottery tickets.');
       }
 
-      if (userData[userId].balance < LOTTERY_PRICE)
+      if (userData.balance < LOTTERY_PRICE)
         return message.channel.send(`You need at least ${LOTTERY_PRICE} to buy a lottery ticket.`);
 
       // Deduct and assign ticket
-      userData[userId].balance -= LOTTERY_PRICE;
+      userData.balance -= LOTTERY_PRICE;
       lotteryState.pot += LOTTERY_PRICE;
       lotteryState.tickets.push(userId);
-      saveUserData();
+
+      // Persist to MongoDB
+      await saveUserData({ balance: userData.balance });
 
       const boughtEmbed = new EmbedBuilder()
         .setTitle("🎟️ Lottery Ticket Bought!")
@@ -78,9 +80,16 @@ module.exports = {
       // Draw winner
       const winnerIdx = Math.floor(Math.random() * lotteryState.tickets.length);
       const winnerId = lotteryState.tickets[winnerIdx];
-      userData[winnerId] = userData[winnerId] || { balance: 0, inventory: {} };
-      userData[winnerId].balance += lotteryState.pot;
-      saveUserData();
+
+      // Award winnings to winner using updateUserBalance
+      if (winnerId === userId) {
+        // Winner is the current user
+        userData.balance += lotteryState.pot;
+        await saveUserData({ balance: userData.balance });
+      } else {
+        // Winner is someone else - use updateUserBalance to update them
+        await updateUserBalance(winnerId, lotteryState.pot);
+      }
 
       const winnerEmbed = new EmbedBuilder()
         .setTitle("🎉 Lottery Drawn! 🎉")
@@ -97,7 +106,7 @@ module.exports = {
 
     // Default error/help
     return message.channel.send(
-      `Usage: \`!lottery buy\` to buy ticket (${LOTTERY_PRICE}, max 5 per user), \`!lottery status\` to check, \`!lottery draw\` (authorized users only)`
+      `Usage: \`.lottery buy\` to buy ticket (${LOTTERY_PRICE}, max 5 per user), \`.lottery status\` to check, \`.lottery draw\` (authorized users only)`
     );
   }
 };

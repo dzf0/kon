@@ -14,8 +14,8 @@ module.exports = {
           value: [
             `\`${prefix}bal\` - Show your current balance.`,
             `\`${prefix}inventory\` - View your keys and items.`,
-            `\`${prefix}buy\` - Buy items from the shop.`,
             `\`${prefix}shop\` - View the shop items.`,
+            `\`${prefix}open <rarity> [amount]\` - Open keys of a rarity to get coins.`,
             `\`${prefix}claim\` - Claim a dropped key if one is active.`
           ].join('\n'),
           inline: false
@@ -53,7 +53,9 @@ module.exports = {
             `\`${prefix}wordscramble cancel\` - (staff) Cancel active word scramble.`,
             `\`${prefix}hangman start <word>\` - (staff) Start a hangman game in the game channel.`,
             `\`${prefix}hangman guess <letter>\` - Guess a letter in hangman.`,
-            `\`${prefix}hangman cancel\` - (staff) Cancel the current hangman game.`
+            `\`${prefix}hangman cancel\` - (staff) Cancel the current hangman game.`,
+            `\`${prefix}guess start [number]\` - (staff) Start a number guessing game.`,
+            `\`${prefix}guess stop\` - (staff) Stop the current guessing game.`
           ].join('\n'),
           inline: false
         },
@@ -76,7 +78,9 @@ module.exports = {
             `\`${prefix}wordscramble start <word>\` - Start a word scramble round.`,
             `\`${prefix}wordscramble cancel\` - Cancel word scramble.`,
             `\`${prefix}hangman start <word>\` - Start hangman with a secret word.`,
-            `\`${prefix}hangman cancel\` - Cancel current hangman game.`
+            `\`${prefix}hangman cancel\` - Cancel current hangman game.`,
+            `\`${prefix}guess start [number]\` - Start a number guessing game.`,
+            `\`${prefix}guess stop\` - Stop the current guessing game.`
           ].join('\n'),
           inline: false
         }

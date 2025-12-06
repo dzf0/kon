@@ -18,7 +18,7 @@ const GAME_CHANNEL_ID = '1405349401945178152'; // Replace with your game channel
 
 module.exports = {
   name: 'hangman',
-  description: 'Play hangman! Admin sets word, try to guess it!!.',
+  description: 'Play hangman! Admin sets word, try to guess it!',
   async execute({ message, args, userData, saveUserData, client }) {
     const sub = (args[0] || '').toLowerCase();
 
@@ -34,7 +34,7 @@ module.exports = {
 
       const word = args.slice(1).join(' ').toLowerCase();
       if (!word || word.length < 3) {
-        return message.channel.send('Usage: `!hangman start <word>` (word must be at least 3 letters)');
+        return message.channel.send('Usage: `.hangman start <word>` (word must be at least 3 letters)');
       }
 
       if (!/^[a-z\s]+$/.test(word)) {
@@ -58,7 +58,7 @@ module.exports = {
 
       const startEmbed = new EmbedBuilder()
         .setTitle('🎮 Hangman Game Started!')
-        .setDescription(`A new hangman game has been started by ${message.author}!\n\nType \`!hangman guess <letter>\` to guess!\n\n${getWordDisplay(GAME_CHANNEL_ID)}`)
+        .setDescription(`A new hangman game has been started by ${message.author}!\n\nType \`.hangman guess <letter>\` to guess!\n\n${getWordDisplay(GAME_CHANNEL_ID)}`)
         .addFields({ name: 'Wrong Guesses', value: '0/6', inline: true })
         .setColor('#00FF00')
         .setTimestamp();
@@ -80,7 +80,7 @@ module.exports = {
       const guess = args[1]?.toLowerCase();
 
       if (!guess || guess.length !== 1 || !/[a-z]/.test(guess)) {
-        return message.channel.send('Please guess a single letter: `!hangman guess <letter>`');
+        return message.channel.send('Please guess a single letter: `.hangman guess <letter>`');
       }
 
       if (game.guessed.has(guess)) {
@@ -93,11 +93,10 @@ module.exports = {
         const display = getWordDisplay(GAME_CHANNEL_ID);
 
         if (!display.includes('_')) {
-          const userId = message.author.id;
-          userData[userId] = userData[userId] || { balance: 0, inventory: {} };
+          // Word solved - award reward
           const reward = 300;
-          userData[userId].balance += reward;
-          saveUserData();
+          userData.balance = (userData.balance || 0) + reward;
+          await saveUserData({ balance: userData.balance });
 
           const winEmbed = new EmbedBuilder()
             .setTitle('🎉 Game Won!')
@@ -168,9 +167,9 @@ module.exports = {
 
     return message.channel.send(
       '**Hangman Commands:**\n' +
-      '`!hangman start <word>` - Start (admin)\n' +
-      '`!hangman guess <letter>` - Guess\n' +
-      '`!hangman cancel` - Cancel (admin)'
+      '`.hangman start <word>` - Start (admin)\n' +
+      '`.hangman guess <letter>` - Guess\n' +
+      '`.hangman cancel` - Cancel (admin)'
     );
   }
 };

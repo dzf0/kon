@@ -35,20 +35,21 @@ module.exports = {
     }
 
     if (!bet || isNaN(bet) || bet <= 0) {
-      return message.channel.send('Usage: `!blackjack <amount>`');
+      return message.channel.send('Usage: `.blackjack <amount>`');
     }
 
-    userData[userId] = userData[userId] || { balance: 0, inventory: {} };
-    if (typeof userData[userId].balance !== 'number') userData[userId].balance = 0;
-    if (userData[userId].balance < bet) {
+    // userData is already loaded from MongoDB by index.js
+    if (typeof userData.balance !== 'number') userData.balance = 0;
+
+    if (userData.balance < bet) {
       return message.channel.send('Insufficient balance.');
     }
 
     // Mark user as having an active game
     activeGames.add(userId);
 
-    userData[userId].balance -= bet;
-    saveUserData();
+    userData.balance -= bet;
+    await saveUserData({ balance: userData.balance });
 
     let playerHand = [getCard(), getCard()];
     let dealerHand = [getCard(), getCard()];
@@ -99,14 +100,14 @@ module.exports = {
           gameOver = true;
           collector.stop();
           await statusMsg.edit({ embeds: [createEmbed('🎯 21! Standing automatically...')] });
-          dealerTurn();
+          await dealerTurn();
         } else {
           await statusMsg.edit({ embeds: [createEmbed('Hit! React again.')] });
         }
       } else if (reaction.emoji.name === '⏹️') {
         gameOver = true;
         collector.stop();
-        dealerTurn();
+        await dealerTurn();
       }
     });
 
@@ -132,18 +133,18 @@ module.exports = {
         result = '💥 You busted! Dealer wins.';
         color = '#FF0000';
       } else if (dVal > 21) {
-        userData[userId].balance += bet * 2;
-        saveUserData();
+        userData.balance += bet * 2;
+        await saveUserData({ balance: userData.balance });
         result = `🎉 Dealer busted! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal > dVal) {
-        userData[userId].balance += bet * 2;
-        saveUserData();
+        userData.balance += bet * 2;
+        await saveUserData({ balance: userData.balance });
         result = `🎉 You beat the dealer! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal === dVal) {
-        userData[userId].balance += bet;
-        saveUserData();
+        userData.balance += bet;
+        await saveUserData({ balance: userData.balance });
         result = '🤝 Push! Bet returned.';
       } else {
         result = '😔 Dealer wins!';
@@ -157,7 +158,7 @@ module.exports = {
           { name: 'Dealer Hand', value: dealerHand.map(c => c.display).join(' '), inline: true },
           { name: 'Your Value', value: pVal.toString(), inline: true },
           { name: 'Dealer Value', value: dVal.toString(), inline: true },
-          { name: 'New Balance', value: userData[userId].balance.toString(), inline: false }
+          { name: 'New Balance', value: userData.balance.toString(), inline: false }
         )
         .setDescription(result)
         .setColor(color)

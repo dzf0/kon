@@ -2,8 +2,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const mongoose = require('mongoose');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
-const keydrop = require('./commands/keydrop.js'); // Import keydrop module
+const keydrop = require('./commands/keydrop.js');
 
 // Start Express server to keep bot awake on some hosts
 const app = express();
@@ -11,13 +12,67 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is running'));
 app.listen(PORT, () => console.log(`Web server started on port ${PORT}`));
 
-// Create Discord client
+// ===== MONGODB SETUP =====
+const userSchema = new mongoose.Schema({
+  userId: { type: String, unique: true, required: true },
+  balance: { type: Number, default: 0 },
+  inventory: { type: Object, default: {} },
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Get user from MongoDB
+async function getUserData(userId) {
+  let user = await User.findOne({ userId });
+  if (!user) {
+    user = new User({ userId, balance: 0, inventory: {} });
+    await user.save();
+  }
+  return user.toObject();
+}
+
+// Save user to MongoDB
+async function saveUserData(userId, userData) {
+  await User.updateOne(
+    { userId },
+    { $set: userData },
+    { upsert: true }
+  );
+}
+
+// Update any user's balance (for lottery, gifts, etc.)
+async function updateUserBalance(userId, amount) {
+  const user = await User.findOneAndUpdate(
+    { userId },
+    { $inc: { balance: amount } },
+    { upsert: true, new: true }
+  );
+  return user.toObject();
+}
+
+// Add key to inventory (used by keydrop/claim/admin)
+async function addKeyToInventory(userId, rarity, quantity) {
+  const user = await getUserData(userId);
+  user.inventory = user.inventory || {};
+  user.inventory[rarity] = (user.inventory[rarity] || 0) + quantity;
+  await saveUserData(userId, { inventory: user.inventory });
+}
+
+// ===== DISCORD CLIENT SETUP =====
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMessageReactions, // important for blackjack & reactions
+    GatewayIntentBits.GuildMessageReactions,
   ],
 });
 
@@ -36,37 +91,6 @@ for (const file of commandFiles) {
     client.commands.set(command.name, command);
   }
 }
-
-// User data stored in-memory, backed by data.json
-let userData = {};
-
-function loadUserData() {
-  try {
-    if (fs.existsSync('./data.json')) {
-      userData = JSON.parse(fs.readFileSync('./data.json', 'utf-8'));
-    }
-  } catch (e) {
-    console.error('Failed to load user data:', e);
-  }
-}
-
-function saveUserData() {
-  try {
-    fs.writeFileSync('./data.json', JSON.stringify(userData, null, 2));
-  } catch (e) {
-    console.error('Failed to save user data:', e);
-  }
-}
-
-// Helper to add keys (used by keydrop/claim/admin)
-function addKeyToInventory(userId, rarity, quantity) {
-  userData[userId] = userData[userId] || { inventory: {}, balance: 0 };
-  userData[userId].inventory[rarity] =
-    (userData[userId].inventory[rarity] || 0) + quantity;
-  saveUserData();
-}
-
-loadUserData();
 
 // Rarity and guessing-game config
 const rarities = [
@@ -93,6 +117,7 @@ let guessGame = {
   channelId: null,
 };
 
+// ===== MESSAGE HANDLER =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -110,12 +135,16 @@ client.on('messageCreate', async (message) => {
           Math.floor(Math.random() * (rewardRange.max - rewardRange.min + 1)) +
           rewardRange.min;
 
-        userData[message.author.id] =
-          userData[message.author.id] || { inventory: {}, balance: 0 };
-        userData[message.author.id].inventory[wonRarity] =
-          (userData[message.author.id].inventory[wonRarity] || 0) + 1;
-        userData[message.author.id].balance += rewardAmount;
-        saveUserData();
+        // Get user and update from MongoDB
+        const userData = await getUserData(message.author.id);
+        userData.inventory = userData.inventory || {};
+        userData.inventory[wonRarity] = (userData.inventory[wonRarity] || 0) + 1;
+        userData.balance += rewardAmount;
+
+        await saveUserData(message.author.id, {
+          inventory: userData.inventory,
+          balance: userData.balance,
+        });
 
         const winEmbed = new EmbedBuilder()
           .setTitle('Game Winner!')
@@ -143,12 +172,17 @@ client.on('messageCreate', async (message) => {
   if (!command) return;
 
   try {
+    // Load user data from MongoDB for command
+    const userData = await getUserData(message.author.id);
+
     await command.execute({
       message,
       args,
       userData,
-      saveUserData,
+      saveUserData: (updatedData) => saveUserData(message.author.id, updatedData),
+      updateUserBalance,
       addKeyToInventory,
+      getUserData,
       keydrop,
       guessGame,
       rarities,
