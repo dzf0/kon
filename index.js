@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
   userId: { type: String, unique: true, required: true },
   balance: { type: Number, default: 0 },
   inventory: { type: Object, default: {} },
+  lastDaily: { type: Date, default: null },  // Added for daily rewards
 });
 
 const User = mongoose.model('User', userSchema);
@@ -64,7 +65,7 @@ mongoose
 async function getUserData(userId) {
   let user = await User.findOne({ userId });
   if (!user) {
-    user = new User({ userId, balance: 0, inventory: {} });
+    user = new User({ userId, balance: 0, inventory: {}, lastDaily: null });
     await user.save();
   }
   return user.toObject();
