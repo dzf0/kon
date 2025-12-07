@@ -4,7 +4,7 @@ const KEYDROP_CHANNEL_ID = '1401925188991582338';
 
 let currentKey = null;
 
-// Rarity chances are *within* the 5% overall drop rate
+// Rarity chances are *within* the overall drop rate
 const rarities = [
   { name: 'Prismatic', chance: 0.0001 },
   { name: 'Mythical',  chance: 0.001 },
@@ -47,7 +47,7 @@ async function handleKeyDrop(message, client) {
   }
 
   // 5% chance per message to spawn a new key if none active
-  if (!currentKey && Math.random() <= 0.90) {
+  if (!currentKey && Math.random() <= 0.05) {
     const rarity = getRandomRarity();
     currentKey = {
       rarity, // string like "Legendary"
@@ -57,8 +57,8 @@ async function handleKeyDrop(message, client) {
     };
 
     const dropEmbed = new EmbedBuilder()
-      .setTitle('Key Dropped')
-      .setDescription(`A **${rarity}** key dropped! Type `.claim` to claim it!`)
+      .setTitle('🔑 Key Dropped!')
+      .setDescription(`A **${rarity}** key dropped! Type \`.claim\` to claim it!`)
       .setColor('Green')
       .setTimestamp();
     await message.channel.send({ embeds: [dropEmbed] });
@@ -79,8 +79,8 @@ async function spawnKey(rarity, channelId, client) {
   const channel = client.channels.cache.get(channelId);
   if (channel) {
     const dropEmbed = new EmbedBuilder()
-      .setTitle('Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type `.claim` to claim it!`)
+      .setTitle('🔑 Key Spawned by Admin')
+      .setDescription(`An **${rarity}** key has been spawned! Type \`.claim\` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
 
