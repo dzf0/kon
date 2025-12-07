@@ -19,7 +19,6 @@ module.exports = {
       return message.channel.send('You must bet on "h" (heads) or "t" (tails).');
     }
 
-    // userData is already loaded from MongoDB by index.js
     if (typeof userData.balance !== 'number') userData.balance = 0;
 
     if (userData.balance < betAmount) {
@@ -54,8 +53,8 @@ module.exports = {
            );
     }
 
-    // Persist to MongoDB
-    await saveUserData({ balance: userData.balance });
+    // Persist to MongoDB (with userId)
+    await saveUserData(message.author.id, { balance: userData.balance });
 
     message.channel.send({ embeds: [embed] });
   },
