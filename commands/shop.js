@@ -21,9 +21,7 @@ module.exports = {
     for (const item of shopItems) {
       embed.addFields({
         name: `${item.emoji} ${item.name}`,
-        value: `**Price:** ${item.price} coins
-${item.description}
-**ID:** `${item.id}``,
+        value: `**Price:** ${item.price} coins\n${item.description}\n**ID:** \`${item.id}\``,
         inline: false,
       });
     }
@@ -31,6 +29,3 @@ ${item.description}
     message.channel.send({ embeds: [embed] });
   },
 };
-
-
-

@@ -1,93 +1,157 @@
 const { EmbedBuilder } = require('discord.js');
 
+const ADMIN_ROLE_ID = '1382513369801555988';
+
 module.exports = {
   name: 'help',
-  description: 'Show all available commands.',
-  async execute({ message, prefix }) {
+  description: 'Shows all available commands',
+  async execute({ message, args, prefix, client }) {
+    const category = args[0]?.toLowerCase();
+
+    // Detailed category help
+    if (category) {
+      let embed;
+
+      switch (category) {
+        case 'economy':
+          embed = new EmbedBuilder()
+            .setTitle('💰 Economy Commands')
+            .setColor('#FFD700')
+            .addFields(
+              { name: `${prefix}bal [@user]`, value: 'Check your balance or another user\'s balance', inline: false },
+              { name: `${prefix}baltop`, value: 'View the richest users on the server', inline: false },
+              { name: `${prefix}daily`, value: 'Claim your daily reward', inline: false }
+            );
+          break;
+
+        case 'games':
+          embed = new EmbedBuilder()
+            .setTitle('🎮 Game Commands')
+            .setColor('#FF6B6B')
+            .addFields(
+              { name: `${prefix}dice <amount>`, value: 'Roll a die and win rewards based on your roll', inline: false },
+              { name: `${prefix}slots <amount>`, value: 'Play slots - match 3 for jackpot!', inline: false },
+              { name: `${prefix}rps <amount> <rock|paper|scissors>`, value: 'Play rock paper scissors', inline: false },
+              { name: `${prefix}cf <amount> <h|t>`, value: 'Flip a coin and bet on heads or tails', inline: false },
+              { name: `${prefix}roulette <amount> <red|black|green|0-36>`, value: 'Play roulette and win big!', inline: false },
+              { name: `${prefix}blackjack <amount>`, value: 'Play blackjack and beat the dealer', inline: false },
+              { name: `${prefix}hl <amount>`, value: 'Higher or Lower - guess correctly to win', inline: false },
+              { name: `${prefix}minesweeper start <size> <mines> <bet>`, value: 'Start your own minesweeper game', inline: false }
+            );
+          break;
+
+        case 'multiplayer':
+          embed = new EmbedBuilder()
+            .setTitle('🎯 Multiplayer Game Commands')
+            .setColor('#4ECDC4')
+            .addFields(
+              { name: `${prefix}hangman start <word>`, value: '(Admin) Start a hangman game', inline: false },
+              { name: `${prefix}hangman guess <letter>`, value: 'Guess a letter in the active hangman game', inline: false },
+              { name: `${prefix}wordscramble start <word>`, value: '(Admin) Start a word scramble game', inline: false },
+              { name: `${prefix}guess start`, value: '(Admin) Start a number guessing game (1-500)', inline: false },
+              { name: `${prefix}guess stop`, value: '(Admin) Stop the guessing game', inline: false }
+            );
+          break;
+
+        case 'shop':
+          embed = new EmbedBuilder()
+            .setTitle('🏪 Shop & Items')
+            .setColor('#9B59B6')
+            .addFields(
+              { name: `${prefix}shop`, value: 'View items available for purchase', inline: false },
+              { name: `${prefix}buy <item_id>`, value: 'Buy an item from the shop', inline: false },
+              { name: `${prefix}inventory`, value: 'View your inventory', inline: false },
+              { name: `${prefix}open <rarity> [amount]`, value: 'Open keys to receive prizes', inline: false },
+              { name: `${prefix}trade @user`, value: 'Start a trade with another user', inline: false },
+              { name: `${prefix}trade offer currency <amount>`, value: 'Offer coins in active trade', inline: false },
+              { name: `${prefix}trade offer item <name> <amount>`, value: 'Offer items in active trade', inline: false },
+              { name: `${prefix}trade view`, value: 'View current trade offers', inline: false },
+              { name: `${prefix}trade confirm`, value: 'Confirm your side of the trade', inline: false },
+              { name: `${prefix}trade cancel`, value: 'Cancel the active trade', inline: false }
+            );
+          break;
+
+        case 'keys':
+          embed = new EmbedBuilder()
+            .setTitle('🔑 Key System')
+            .setColor('#F39C12')
+            .addFields(
+              { name: `${prefix}claim`, value: 'Claim a dropped key', inline: false },
+              { name: 'Passive Key Drops', value: 'Keys drop randomly in the key drop channel as you chat', inline: false }
+            );
+          break;
+
+        case 'lottery':
+          embed = new EmbedBuilder()
+            .setTitle('🎟️ Lottery')
+            .setColor('#E74C3C')
+            .addFields(
+              { name: `${prefix}lottery buy`, value: 'Buy a lottery ticket (max 5 per user)', inline: false },
+              { name: `${prefix}lottery status`, value: 'Check current pot and tickets sold', inline: false },
+              { name: `${prefix}lottery draw`, value: '(Admin) Draw a winner from all tickets', inline: false }
+            );
+          break;
+
+        case 'admin':
+          if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
+            return message.channel.send('❌ You do not have permission to view admin commands.');
+          }
+          embed = new EmbedBuilder()
+            .setTitle('⚙️ Admin Commands')
+            .setColor('#E67E22')
+            .addFields(
+              { name: `${prefix}admin give currency <amount> @user`, value: 'Give coins to a user', inline: false },
+              { name: `${prefix}admin give keys <rarity> <amount> @user`, value: 'Give keys to a user', inline: false },
+              { name: `${prefix}admin remove currency <amount> @user`, value: 'Remove coins from a user', inline: false },
+              { name: `${prefix}admin remove keys <rarity> <amount> @user`, value: 'Remove keys from a user', inline: false },
+              { name: `${prefix}admin reset @user`, value: 'Reset a user\'s balance and inventory', inline: false },
+              { name: `${prefix}admin spawn <rarity> hannel_id>`, value: 'Spawn a key in a specific channel', inline: false },
+              { name: `${prefix}adminlogs`, value: 'View admin action logs from past 7 days', inline: false }
+            );
+          break;
+
+        default:
+          return message.channel.send(`❌ Unknown category. Available: \`economy\`, \`games\`, \`multiplayer\`, \`shop\`, \`keys\`, \`lottery\`, \`admin\``);
+      }
+
+      embed.setFooter({ text: `Requested by ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
+        .setTimestamp();
+
+      return message.channel.send({ embeds: [embed] });
+    }
+
+    // Main help menu
     const embed = new EmbedBuilder()
-      .setTitle('📖 Help Menu')
-      .setDescription(`Prefix: \`${prefix}\`\nHere are all available commands:`)
-      .setColor('#00AAFF')
+      .setTitle('🤖 Bot Commands')
+      .setDescription(
+        `**Prefix:** \`${prefix}\`\n\n` +
+        `Use \`${prefix}help ategory>\` for detailed command info\n\n` +
+        `**Available Categories:**\n` +
+        `• \`economy\` - Balance, daily rewards, leaderboard\n` +
+        `• \`games\` - Betting games and mini-games\n` +
+        `• \`multiplayer\` - Group games (hangman, wordscramble, guess)\n` +
+        `• \`shop\` - Shop, inventory, trading\n` +
+        `• \`keys\` - Key drop system\n` +
+        `• \`lottery\` - Lottery system\n` +
+        `• \`admin\` - Admin commands (Admin only)`
+      )
+      .setColor('#5865F2')
+      .setThumbnail(client.user.displayAvatarURL())
       .addFields(
         {
-          name: 'Economy',
-          value: [
-            `\`${prefix}bal\` - Show your current balance.`,
-            `\`${prefix}inventory\` - View your keys and items.`,
-            `\`${prefix}shop\` - View the shop items.`,
-            `\`${prefix}open <rarity> [amount]\` - Open keys of a rarity to get coins.`,
-            `\`${prefix}claim\` - Claim a dropped key if one is active.`
-          ].join('\n'),
+          name: '💰 Popular Commands',
+          value: `\`${prefix}bal\` \`${prefix}daily\` \`${prefix}inventory\` \`${prefix}shop\``,
           inline: false
         },
         {
-          name: 'Gambling & Games',
-          value: [
-            `\`${prefix}cf <amount> <h|t>\` - Coin flip betting game.`,
-            `\`${prefix}slots <amount>\` - Slot machine, win up to 10x.`,
-            `\`${prefix}dice <amount>\` - Dice game, high rolls pay more.`,
-            `\`${prefix}rps <amount> <rock|paper|scissors>\` - Rock, paper, scissors vs bot.`,
-            `\`${prefix}roulette <amount> <red|black|green|0-36>\` - Roulette wheel bets.`,
-            `\`${prefix}hl <amount>\` - Higher or Lower number streak game.`,
-            `\`${prefix}blackjack <amount>\` - Blackjack with reactions (hit/stand).`,
-            `\`${prefix}minesweeper start <size> <mines> <bet>\` - Start your own minesweeper game.`,
-            `\`${prefix}minesweeper pick <tile>\` - Pick a tile in your minesweeper game.`,
-            `\`${prefix}minesweeper cancel\` - Cancel your minesweeper game.`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'Lottery',
-          value: [
-            `\`${prefix}lottery buy\` - Buy a lottery ticket.`,
-            `\`${prefix}lottery status\` - Check lottery pot and ticket count.`,
-            `\`${prefix}lottery draw\` - Draw a lottery winner (staff only).`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'Trivia & Word Games',
-          value: [
-            `\`${prefix}trivia\` - Answer a trivia question for rewards.`,
-            `\`${prefix}wordscramble start <word>\` - (staff) Start a word scramble in the game channel.`,
-            `\`${prefix}wordscramble cancel\` - (staff) Cancel active word scramble.`,
-            `\`${prefix}hangman start <word>\` - (staff) Start a hangman game in the game channel.`,
-            `\`${prefix}hangman guess <letter>\` - Guess a letter in hangman.`,
-            `\`${prefix}hangman cancel\` - (staff) Cancel the current hangman game.`,
-            `\`${prefix}guess start [number]\` - (staff) Start a number guessing game.`,
-            `\`${prefix}guess stop\` - (staff) Stop the current guessing game.`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'Keydrop & Passive',
-          value: [
-            `\`${prefix}claim\` - Claim the active dropped key (from keydrop system).`
-          ].join('\n'),
-          inline: false
-        },
-        {
-          name: 'Admin / Staff Only',
-          value: [
-            `\`${prefix}admin give currency <amount> @user\` - Give currency to a user.`,
-            `\`${prefix}admin remove currency <amount> @user\` - Remove currency from a user.`,
-            `\`${prefix}admin give keys <rarity> <amount> @user\` - Give keys of a rarity.`,
-            `\`${prefix}admin remove keys <rarity> <amount> @user\` - Remove keys of a rarity.`,
-            `\`${prefix}admin reset @user\` - Reset all data for a user.`,
-            `\`${prefix}lottery draw\` - Draw the lottery winner.`,
-            `\`${prefix}wordscramble start <word>\` - Start a word scramble round.`,
-            `\`${prefix}wordscramble cancel\` - Cancel word scramble.`,
-            `\`${prefix}hangman start <word>\` - Start hangman with a secret word.`,
-            `\`${prefix}hangman cancel\` - Cancel current hangman game.`,
-            `\`${prefix}guess start [number]\` - Start a number guessing game.`,
-            `\`${prefix}guess stop\` - Stop the current guessing game.`
-          ].join('\n'),
+          name: '🎮 Quick Games',
+          value: `\`${prefix}dice 100\` \`${prefix}slots 50\` \`${prefix}rps 100 rock\``,
           inline: false
         }
       )
-      .setFooter({ text: 'Use each command for more details and correct arguments.' })
+      .setFooter({ text: `Requested by ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
       .setTimestamp();
 
-    await message.channel.send({ embeds: [embed] });
+    return message.channel.send({ embeds: [embed] });
   }
 };

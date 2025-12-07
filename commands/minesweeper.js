@@ -18,7 +18,7 @@ function gridDisplay(grid, picks) {
     if (picks.has(idx)) {
       return tile === 'mine' ? '💥' : '✅';
     } else {
-      return ``${idx + 1}``;
+      return `\`${idx + 1}\``;
     }
   }).join(' ');
 }
@@ -46,9 +46,9 @@ module.exports = {
       // userData is already loaded from MongoDB by index.js
       if (userData.balance < bet) return message.channel.send('You do not have enough balance for this bet.');
 
-      // Deduct bet
+      // Deduct bet – one argument, wrapper adds userId
       userData.balance -= bet;
-      await saveUserData(message.author.id, { balance: userData.balance });
+      await saveUserData({ balance: userData.balance });
 
       userGames.set(userId, {
         grid: generateGrid(size, mineCount),
@@ -62,9 +62,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setTitle('☢️ Your Minesweeper Game!')
-        .setDescription(`Grid: ${size} tiles, ${mineCount} mines
-
-Type `.minesweeper pick <tile number>` to begin!`)
+        .setDescription(`Grid: ${size} tiles, ${mineCount} mines\n\nType \`.minesweeper pick <tile number>\` to begin!`)
         .addFields({ name: 'Grid', value: gridDisplay(Array(size).fill('safe'), new Set()), inline: false })
         .setColor('#FFD700')
         .setTimestamp();
@@ -92,9 +90,7 @@ Type `.minesweeper pick <tile number>` to begin!`)
         // Lost
         const embed = new EmbedBuilder()
           .setTitle('💥 Mine Hit! Game Over')
-          .setDescription(`${gridDisplay(game.grid, game.picks)}
-
-You hit a mine at tile ${pickNum}. Lost your bet.`)
+          .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nYou hit a mine at tile ${pickNum}. Lost your bet.`)
           .setColor('#FF0000')
           .setTimestamp();
         message.channel.send({ embeds: [embed] });
@@ -108,14 +104,12 @@ You hit a mine at tile ${pickNum}. Lost your bet.`)
         const payout = game.bet * 5;
         userData.balance += payout;
 
-        // Persist to MongoDB (with userId)
-        await saveUserData(message.author.id, { balance: userData.balance });
+        // Persist to MongoDB – one argument, wrapper adds userId
+        await saveUserData({ balance: userData.balance });
 
         const embed = new EmbedBuilder()
           .setTitle('🎉 Mines Cleared! You Win!')
-          .setDescription(`${gridDisplay(game.grid, game.picks)}
-
-You've cleared all safe tiles and win **${payout}** coins!`)
+          .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nYou've cleared all safe tiles and win **${payout}** coins!`)
           .setColor('#00FF00')
           .setTimestamp();
         message.channel.send({ embeds: [embed] });
@@ -126,9 +120,7 @@ You've cleared all safe tiles and win **${payout}** coins!`)
       // Show progress
       const embed = new EmbedBuilder()
         .setTitle('☢️ Minesweeper')
-        .setDescription(`${gridDisplay(game.grid, game.picks)}
-
-Pick another tile with `.minesweeper pick <tile number>``)
+        .setDescription(`${gridDisplay(game.grid, game.picks)}\n\nPick another tile with \`.minesweeper pick <tile number>\``)
         .setColor('#FFD700')
         .setTimestamp();
       message.channel.send({ embeds: [embed] });
@@ -146,8 +138,9 @@ Pick another tile with `.minesweeper pick <tile number>``)
 
     // HELP
     return message.channel.send(
-      '**Minesweeper Commands:**' + '`.minesweeper start <size> <mines> <bet>` - Start your own game' +
-      '`.minesweeper pick <tile number>` - Play your game ' +
+      '**Minesweeper Commands:**\n' +
+      '`.minesweeper start <size> <mines> <bet>` - Start your own game\n' +
+      '`.minesweeper pick <tile number>` - Play your game\n' +
       '`.minesweeper cancel` - Cancel your game'
     );
   }

@@ -75,8 +75,8 @@ module.exports = {
 
     embed.addFields({ name: 'New Balance', value: userData.balance.toString(), inline: false });
 
-    // Persist to MongoDB (with userId)
-    await saveUserData(message.author.id, { balance: userData.balance });
+    // Persist to MongoDB – one argument, wrapper adds userId
+    await saveUserData({ balance: userData.balance });
 
     message.channel.send({ embeds: [embed] });
   }

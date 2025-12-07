@@ -21,6 +21,39 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// Admin Log Schema
+const adminLogSchema = new mongoose.Schema({
+  adminId: { type: String, required: true },
+  adminUsername: { type: String, required: true },
+  command: { type: String, required: true },
+  action: { type: String, required: true },
+  targetUserId: { type: String },
+  targetUsername: { type: String },
+  details: { type: String },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const AdminLog = mongoose.model('AdminLog', adminLogSchema);
+
+// Helper to log admin actions
+async function logAdminAction(adminId, adminUsername, command, action, targetUserId = null, targetUsername = null, details = '') {
+  try {
+    const log = new AdminLog({
+      adminId,
+      adminUsername,
+      command,
+      action,
+      targetUserId,
+      targetUsername,
+      details,
+      timestamp: new Date()
+    });
+    await log.save();
+  } catch (error) {
+    console.error('Error logging admin action:', error);
+  }
+}
+
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
@@ -186,6 +219,8 @@ client.on('messageCreate', async (message) => {
       rarities,
       prefix,
       client,
+      logAdminAction,  // Added for admin logging
+      AdminLog,        // Added for admin logs command
     });
   } catch (error) {
     console.error('Error executing command:', error);

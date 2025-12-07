@@ -17,7 +17,7 @@ function scrambleWord(word) {
 module.exports = {
   name: 'wordscramble',
   description: 'Start a word scramble game in the general channel. Usage: .wordscramble start <word>',
-  async execute({ message, args, userData, saveUserData, client }) {
+  async execute({ message, args, updateUserBalance, client }) {
     const sub = (args[0] || '').toLowerCase();
 
     // START GAME (Authorized role only, from any channel)
@@ -70,12 +70,11 @@ module.exports = {
       const collector = gameChannel.createMessageCollector({ filter, time: 30000, max: 1 });
 
       collector.on('collect', async m => {
-        const userId = m.author.id;
+        const winnerId = m.author.id;
         const reward = 200;
 
-        // Update MongoDB (userData already fetched from MongoDB in index.js)
-        userData.balance = (userData.balance || 0) + reward;
-        await saveUserData(m.author.id { balance: userData.balance });
+        // Update winner's balance using updateUserBalance (handles any user)
+        await updateUserBalance(winnerId, reward);
 
         const winEmbed = new EmbedBuilder()
           .setTitle('🎉 Word Solved!')

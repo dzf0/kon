@@ -40,21 +40,25 @@ module.exports = {
       const winnings = betAmount * 2;
       userData.balance += winnings;
       embed.setColor('#00FF00')
-           .setDescription(`${message.author}, The coin landed on **${result === 'h' ? 'Heads' : 'Tails'}**! You won ${betAmount} (doubled your bet)!`)
-           .addFields(
-             { name: 'New Balance', value: userData.balance.toString(), inline: true }
-           );
+        .setDescription(
+          `${message.author}, The coin landed on **${result === 'h' ? 'Heads' : 'Tails'}**! You won ${betAmount} (doubled your bet)!`
+        )
+        .addFields(
+          { name: 'New Balance', value: userData.balance.toString(), inline: true }
+        );
     } else {
       // User loses: bet already deducted
       embed.setColor('#FF0000')
-           .setDescription(`${message.author}, The coin landed on **${result === 'h' ? 'Heads' : 'Tails'}**. You lost ${betAmount}.`)
-           .addFields(
-             { name: 'New Balance', value: userData.balance.toString(), inline: true }
-           );
+        .setDescription(
+          `${message.author}, The coin landed on **${result === 'h' ? 'Heads' : 'Tails'}**. You lost ${betAmount}.`
+        )
+        .addFields(
+          { name: 'New Balance', value: userData.balance.toString(), inline: true }
+        );
     }
 
-    // Persist to MongoDB (with userId)
-    await saveUserData(message.author.id, { balance: userData.balance });
+    // Persist to MongoDB (wrapped in index.js with userId)
+    await saveUserData({ balance: userData.balance });
 
     message.channel.send({ embeds: [embed] });
   },

@@ -13,7 +13,7 @@ function toProperCase(str) {
 module.exports = {
   name: 'admin',
   description: 'Admin commands: give/remove currency or keys, reset user data, spawn keys.',
-  async execute({ message, args, userData, saveUserData, getUserData, keydrop }) {
+  async execute({ message, args, getUserData, keydrop, logAdminAction }) {
     if (!message.member.roles.cache.has(ADMIN_ROLE_ID)) {
       return message.channel.send({
         embeds: [
@@ -90,11 +90,26 @@ module.exports = {
       const userId = userMention.id;
       const targetData = await getUserData(userId);
 
+      // Import User model for direct updates
+      const User = require('mongoose').model('User');
+
       if (subcommand === 'give') {
         if (type === 'keys') {
           targetData.inventory = targetData.inventory || {};
           targetData.inventory[rarityKey] = (targetData.inventory[rarityKey] || 0) + amount;
-          await saveUserData(userId, { inventory: targetData.inventory });
+          await User.updateOne({ userId }, { $set: { inventory: targetData.inventory } }, { upsert: true });
+          
+          // Log admin action
+          await logAdminAction(
+            message.author.id,
+            message.author.username,
+            'admin',
+            'Give Keys',
+            userId,
+            userMention.username,
+            `${amount}x ${rarityKey}`
+          );
+
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -105,7 +120,19 @@ module.exports = {
           });
         } else {
           targetData.balance = (targetData.balance || 0) + amount;
-          await saveUserData(userId, { balance: targetData.balance });
+          await User.updateOne({ userId }, { $set: { balance: targetData.balance } }, { upsert: true });
+          
+          // Log admin action
+          await logAdminAction(
+            message.author.id,
+            message.author.username,
+            'admin',
+            'Give Currency',
+            userId,
+            userMention.username,
+            `${amount} coins`
+          );
+
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -133,7 +160,19 @@ module.exports = {
           if (targetData.inventory[rarityKey] === 0) {
             delete targetData.inventory[rarityKey];
           }
-          await saveUserData(userId, { inventory: targetData.inventory });
+          await User.updateOne({ userId }, { $set: { inventory: targetData.inventory } }, { upsert: true });
+          
+          // Log admin action
+          await logAdminAction(
+            message.author.id,
+            message.author.username,
+            'admin',
+            'Remove Keys',
+            userId,
+            userMention.username,
+            `${amount}x ${rarityKey}`
+          );
+
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -154,7 +193,19 @@ module.exports = {
             });
           }
           targetData.balance -= amount;
-          await saveUserData(userId, { balance: targetData.balance });
+          await User.updateOne({ userId }, { $set: { balance: targetData.balance } }, { upsert: true });
+          
+          // Log admin action
+          await logAdminAction(
+            message.author.id,
+            message.author.username,
+            'admin',
+            'Remove Currency',
+            userId,
+            userMention.username,
+            `${amount} coins`
+          );
+
           return message.channel.send({
             embeds: [
               new EmbedBuilder()
@@ -192,7 +243,22 @@ module.exports = {
           ]
         });
       }
-      await saveUserData(userId, { balance: 0, inventory: {} });
+
+      // Import User model for direct updates
+      const User = require('mongoose').model('User');
+      await User.updateOne({ userId }, { $set: { balance: 0, inventory: {} } }, { upsert: true });
+      
+      // Log admin action
+      await logAdminAction(
+        message.author.id,
+        message.author.username,
+        'admin',
+        'Reset User',
+        userId,
+        userMention.username,
+        'Balance and inventory reset'
+      );
+
       return message.channel.send({
         embeds: [
           new EmbedBuilder()
@@ -215,7 +281,7 @@ module.exports = {
               .setColor('Yellow')
               .setTitle('Invalid Usage')
               .setDescription(
-                'Usage: `.admin spawn <rarity> <channel_id>`\n' +
+                'Usage: `.admin spawn <rarity> hannel_id>`\n' +
                 'Example: `.admin spawn Legendary 1405349401945178152`\n\n' +
                 'Valid rarities: ' + validRarities.join(', ')
               )
@@ -251,6 +317,19 @@ module.exports = {
       try {
         const result = await keydrop.spawnKey(rarityKey, channelId, message.client);
 
+        // Log admin action if successful
+        if (result.success) {
+          await logAdminAction(
+            message.author.id,
+            message.author.username,
+            'admin',
+            'Spawn Key',
+            null,
+            null,
+            `${rarityKey} in channel ${channelId}`
+          );
+        }
+
         return message.channel.send({
           embeds: [
             new EmbedBuilder()
@@ -283,6 +362,3 @@ module.exports = {
     });
   }
 };
-
-
-

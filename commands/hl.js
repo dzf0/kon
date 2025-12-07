@@ -6,17 +6,17 @@ module.exports = {
   async execute({ message, args, userData, saveUserData }) {
     const bet = parseInt(args[0]);
 
-    if (!bet || isNaN(bet) || bet <= 0) 
+    if (!bet || isNaN(bet) || bet <= 0)
       return message.channel.send('Usage: `.hl <amount>`');
 
     if (typeof userData.balance !== 'number') userData.balance = 0;
 
-    if (userData.balance < bet) 
+    if (userData.balance < bet)
       return message.channel.send("You don't have enough balance for this bet.");
 
     // Deduct bet first
     userData.balance -= bet;
-    await saveUserData(message.author.id, { balance: userData.balance });
+    await saveUserData({ balance: userData.balance });
 
     // Start with a random number (1-99, so the next is always possible)
     let current = Math.floor(Math.random() * 99) + 1;
@@ -46,7 +46,7 @@ Streak: **0**
       let resultMsg;
       if (won) {
         userData.balance += payout;
-        await saveUserData(message.author.id, { balance: userData.balance });
+        await saveUserData({ balance: userData.balance });
         resultMsg = `🎉 You survived ${streakCount} rounds!
 The next number was **${finalNum}**.
 **You won ${payout}!**`;
@@ -72,7 +72,10 @@ Streak: ${streakCount}. You lost your bet.`;
 
       const picked = reaction.emoji.name === '🔼' ? 'higher' : 'lower';
 
-      if ((picked === 'higher' && nextNum > current) || (picked === 'lower' && nextNum < current)) {
+      if (
+        (picked === 'higher' && nextNum > current) ||
+        (picked === 'lower' && nextNum < current)
+      ) {
         streak += 1;
         current = nextNum;
         if (streak >= maxRounds) {
@@ -84,7 +87,7 @@ Streak: ${streakCount}. You lost your bet.`;
             .setTitle('🔼 Higher or Lower 🔽')
             .setDescription(`Correct! The new number is **${nextNum}**.
 React for next guess.
-Streak: **${streak}** (${streak < maxRounds ? "Keep going!" : "Max reached"})`)
+Streak: **${streak}** (${streak < maxRounds ? 'Keep going!' : 'Max reached'})`)
             .setColor('#00cc00')
             .setTimestamp();
           await statusMsg.edit({ embeds: [streakEmbed] });

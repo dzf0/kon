@@ -53,8 +53,7 @@ module.exports = {
     const result = spinWheel();
 
     let winnings = 0;
-    let desc = `Wheel Result: **${result.num} (${result.color})**
-`;
+    let desc = `Wheel Result: **${result.num} (${result.color})**\n`;
 
     if (betType === 'number' && betNumber === result.num) {
       winnings = bet * 36;
@@ -76,8 +75,8 @@ module.exports = {
       desc += "You lost your bet.";
     }
 
-    // Persist to MongoDB (with userId)
-    await saveUserData(message.author.id, { balance: userData.balance });
+    // Persist to MongoDB – one argument, wrapper adds userId
+    await saveUserData({ balance: userData.balance });
 
     const embed = new EmbedBuilder()
       .setTitle('🎲 Roulette Spin 🎲')

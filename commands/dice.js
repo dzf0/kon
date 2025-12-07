@@ -35,8 +35,8 @@ module.exports = {
       result = `🎲 You rolled **${roll}**. Unlucky, you lose your bet.`;
     }
 
-    // Persist to MongoDB (with userId)
-    await saveUserData(message.author.id, { balance: userData.balance });
+    // Persist to MongoDB – one argument, wrapper adds userId
+    await saveUserData({ balance: userData.balance });
 
     const embed = new EmbedBuilder()
       .setTitle('Dice Roll')

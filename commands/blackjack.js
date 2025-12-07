@@ -50,8 +50,9 @@ module.exports = {
 
     activeGames.add(userId);
 
+    // Deduct bet and save
     userData.balance -= bet;
-    await saveUserData(userId, { balance: userData.balance });
+    await saveUserData({ balance: userData.balance });
 
     let playerHand = [getCard(), getCard()];
     let dealerHand = [getCard(), getCard()];
@@ -135,17 +136,17 @@ module.exports = {
         color = '#FF0000';
       } else if (dVal > 21) {
         userData.balance += bet * 2;
-        await saveUserData(userId, { balance: userData.balance });
+        await saveUserData({ balance: userData.balance });
         result = `🎉 Dealer busted! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal > dVal) {
         userData.balance += bet * 2;
-        await saveUserData(userId, { balance: userData.balance });
+        await saveUserData({ balance: userData.balance });
         result = `🎉 You beat the dealer! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal === dVal) {
         userData.balance += bet;
-        await saveUserData(userId, { balance: userData.balance });
+        await saveUserData({ balance: userData.balance });
         result = '🤝 Push! Bet returned.';
       } else {
         result = '😔 Dealer wins!';

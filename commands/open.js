@@ -70,8 +70,8 @@ module.exports = {
       userData.inventory[rarityKey] -= amount;
       userData.balance = (userData.balance || 0) + totalReward;
 
-      // Persist to MongoDB (with userId)
-      await saveUserData(message.author.id, {
+      // Persist to MongoDB – one argument, wrapper adds userId
+      await saveUserData({
         inventory: userData.inventory,
         balance: userData.balance,
       });
@@ -96,4 +96,4 @@ module.exports = {
       message.channel.send('❌ Something went wrong while opening your key(s).');
     }
   }
-}; 
+};

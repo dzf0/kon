@@ -16,9 +16,9 @@ module.exports = {
     let quantity = parseInt(args[1]) || 1;
 
     if (!itemId) {
-      return message.channel.send('Usage: `.buy <item_id> [quantity]`
-Example: `.buy common_key 2`
-Use `.shop` to see all items.');
+      return message.channel.send('Usage: `.buy <item_id> [quantity]' +
+                                  'Example: `.buy common_key 2`' +
+                                  'Use `.shop` to see all items.');
     }
 
     if (quantity <= 0) {

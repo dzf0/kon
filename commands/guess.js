@@ -31,7 +31,7 @@ function getRandomRarity(rarities) {
 module.exports = {
   name: 'guess',
   description: 'Guess a number game with admin controls.',
-  async execute({ message, args, userData, saveUserData, addKeyToInventory }) {
+  async execute({ message, args }) {
     const sub = (args[0] || '').toLowerCase();
     const isAdmin = message.member.roles.cache.has(GUESS_ADMIN_ROLE_ID);
 
@@ -83,4 +83,3 @@ module.exports = {
   guessGameRarities,
   getRandomRarity,
 };
-
