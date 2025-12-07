@@ -75,7 +75,7 @@ module.exports = {
 
         // Update MongoDB (userData already fetched from MongoDB in index.js)
         userData.balance = (userData.balance || 0) + reward;
-        await saveUserData({ balance: userData.balance });
+        await saveUserData(m.author.id { balance: userData.balance });
 
         const winEmbed = new EmbedBuilder()
           .setTitle('🎉 Word Solved!')
