@@ -8,7 +8,12 @@ function getCard() {
   const suits = ['♠️', '♥️', '♦️', '♣️'];
   const val = values[Math.floor(Math.random() * values.length)];
   const suit = suits[Math.floor(Math.random() * suits.length)];
-  const valDisplay = (val === 11 ? 'A' : (val === 10 ? ['10', 'J', 'Q', 'K'][Math.floor(Math.random() * 4)] : val));
+  const valDisplay =
+    val === 11
+      ? 'A'
+      : val === 10
+      ? ['10', 'J', 'Q', 'K'][Math.floor(Math.random() * 4)]
+      : val;
   return { val, display: `${valDisplay}${suit}` };
 }
 
@@ -29,7 +34,6 @@ module.exports = {
     const bet = parseInt(args[0]);
     const userId = message.author.id;
 
-    // Check if user already has an active game
     if (activeGames.has(userId)) {
       return message.channel.send('❌ You already have an active blackjack game! Finish it first.');
     }
@@ -38,18 +42,16 @@ module.exports = {
       return message.channel.send('Usage: `.blackjack <amount>`');
     }
 
-    // userData is already loaded from MongoDB by index.js
     if (typeof userData.balance !== 'number') userData.balance = 0;
 
     if (userData.balance < bet) {
       return message.channel.send('Insufficient balance.');
     }
 
-    // Mark user as having an active game
     activeGames.add(userId);
 
     userData.balance -= bet;
-    await saveUserData({ balance: userData.balance });
+    await saveUserData(userId, { balance: userData.balance });
 
     let playerHand = [getCard(), getCard()];
     let dealerHand = [getCard(), getCard()];
@@ -74,9 +76,8 @@ module.exports = {
     await statusMsg.react('✅');
     await statusMsg.react('⏹️');
 
-    const filter = (reaction, user) => {
-      return ['✅', '⏹️'].includes(reaction.emoji.name) && user.id === userId;
-    };
+    const filter = (reaction, user) =>
+      ['✅', '⏹️'].includes(reaction.emoji.name) && user.id === userId;
 
     const collector = statusMsg.createReactionCollector({ filter, time: 60000 });
 
@@ -134,17 +135,17 @@ module.exports = {
         color = '#FF0000';
       } else if (dVal > 21) {
         userData.balance += bet * 2;
-        await saveUserData({ balance: userData.balance });
+        await saveUserData(userId, { balance: userData.balance });
         result = `🎉 Dealer busted! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal > dVal) {
         userData.balance += bet * 2;
-        await saveUserData({ balance: userData.balance });
+        await saveUserData(userId, { balance: userData.balance });
         result = `🎉 You beat the dealer! You win **${bet * 2}** coins!`;
         color = '#00FF00';
       } else if (pVal === dVal) {
         userData.balance += bet;
-        await saveUserData({ balance: userData.balance });
+        await saveUserData(userId, { balance: userData.balance });
         result = '🤝 Push! Bet returned.';
       } else {
         result = '😔 Dealer wins!';
@@ -169,7 +170,6 @@ module.exports = {
     }
 
     function endGame() {
-      // Remove user from active games when game ends
       activeGames.delete(userId);
     }
   },
