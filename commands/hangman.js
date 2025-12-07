@@ -37,7 +37,7 @@ module.exports = {
         return message.channel.send('Usage: `.hangman start <word>` (word must be at least 3 letters)');
       }
 
-      if (!/^[a-z\s]+$/.test(word)) {
+      if (!/^[a-zs]+$/.test(word)) {
         return message.channel.send('❌ Word can only contain letters and spaces.');
       }
 
@@ -58,7 +58,11 @@ module.exports = {
 
       const startEmbed = new EmbedBuilder()
         .setTitle('🎮 Hangman Game Started!')
-        .setDescription(`A new hangman game has been started by ${message.author}!\n\nType \`.hangman guess <letter>\` to guess!\n\n${getWordDisplay(GAME_CHANNEL_ID)}`)
+        .setDescription(`A new hangman game has been started by ${message.author}!
+
+Type `.hangman guess <letter>` to guess!
+
+${getWordDisplay(GAME_CHANNEL_ID)}`)
         .addFields({ name: 'Wrong Guesses', value: '0/6', inline: true })
         .setColor('#00FF00')
         .setTimestamp();
@@ -96,11 +100,15 @@ module.exports = {
           // Word solved - award reward
           const reward = 300;
           userData.balance = (userData.balance || 0) + reward;
-          await saveUserData({ balance: userData.balance });
+          await saveUserData(message.author.id, { balance: userData.balance });
 
           const winEmbed = new EmbedBuilder()
             .setTitle('🎉 Game Won!')
-            .setDescription(`${message.author} guessed the word!\n\n**Word:** ${game.word.toUpperCase()}\n\n${message.author} earned **${reward}** coins!`)
+            .setDescription(`${message.author} guessed the word!
+
+**Word:** ${game.word.toUpperCase()}
+
+${message.author} earned **${reward}** coins!`)
             .setColor('#00FF00')
             .setTimestamp();
 
@@ -111,7 +119,9 @@ module.exports = {
 
         const correctEmbed = new EmbedBuilder()
           .setTitle('✅ Correct Letter!')
-          .setDescription(`**${guess.toUpperCase()}** is in the word!\n\n${display}`)
+          .setDescription(`**${guess.toUpperCase()}** is in the word!
+
+${display}`)
           .addFields(
             { name: 'Wrong Guesses', value: `${game.wrongGuesses}/${game.maxWrongs}`, inline: true },
             { name: 'Guessed', value: Array.from(game.guessed).join(', ').toUpperCase(), inline: true }
@@ -126,7 +136,9 @@ module.exports = {
         if (game.wrongGuesses >= game.maxWrongs) {
           const loseEmbed = new EmbedBuilder()
             .setTitle('💀 Game Over!')
-            .setDescription(`${hangmanStages[game.wrongGuesses]}\n\n**The word was:** ${game.word.toUpperCase()}`)
+            .setDescription(`${hangmanStages[game.wrongGuesses]}
+
+**The word was:** ${game.word.toUpperCase()}`)
             .setColor('#FF0000')
             .setTimestamp();
 
@@ -137,7 +149,11 @@ module.exports = {
 
         const wrongEmbed = new EmbedBuilder()
           .setTitle('❌ Wrong Letter!')
-          .setDescription(`${hangmanStages[game.wrongGuesses]}\n\n**${guess.toUpperCase()}** is not in the word.\n\n${getWordDisplay(GAME_CHANNEL_ID)}`)
+          .setDescription(`${hangmanStages[game.wrongGuesses]}
+
+**${guess.toUpperCase()}** is not in the word.
+
+${getWordDisplay(GAME_CHANNEL_ID)}`)
           .addFields(
             { name: 'Wrong Guesses', value: `${game.wrongGuesses}/${game.maxWrongs}`, inline: true },
             { name: 'Guessed', value: Array.from(game.guessed).join(', ').toUpperCase(), inline: true }
@@ -166,9 +182,12 @@ module.exports = {
     }
 
     return message.channel.send(
-      '**Hangman Commands:**\n' +
-      '`.hangman start <word>` - Start (admin)\n' +
-      '`.hangman guess <letter>` - Guess\n' +
+      '**Hangman Commands:**
+' +
+      '`.hangman start <word>` - Start (admin)
+' +
+      '`.hangman guess <letter>` - Guess
+' +
       '`.hangman cancel` - Cancel (admin)'
     );
   }
@@ -185,4 +204,4 @@ function getWordDisplay(channelId) {
       return game.guessed.has(char) ? char.toUpperCase() : '_';
     })
     .join(' ');
-}
+          }
