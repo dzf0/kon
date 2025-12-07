@@ -44,8 +44,8 @@ module.exports = {
       resultMessage = 'Sorry, you lost your bet.';
     }
 
-    // Persist to MongoDB
-    await saveUserData({ balance: userData.balance });
+    // Persist to MongoDB (with userId)
+    await saveUserData(message.author.id, { balance: userData.balance });
 
     const embed = new EmbedBuilder()
       .setTitle('🎰 Slots Machine 🎰')
