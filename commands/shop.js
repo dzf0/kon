@@ -1,11 +1,11 @@
 const { EmbedBuilder } = require('discord.js');
 
 const shopItems = [
-  { id: 'lucky_coin', name: 'Lucky Coin', price: 100, emoji: '🪙', description: 'A shiny coin for luck' },
-  { id: 'mystery_box', name: 'Mystery Box', price: 250, emoji: '📦', description: 'Contains unknown treasure' },
-  { id: 'golden_key', name: 'Golden Key', price: 500, emoji: '🔑', description: 'Opens special doors' },
-  { id: 'diamond', name: 'Diamond', price: 1000, emoji: '💎', description: 'Valuable gem' },
-  { id: 'crown', name: 'Crown', price: 2000, emoji: '👑', description: 'Symbol of power' },
+  { id: 'lucky_coin', name: 'silver_coin', price: 10000, emoji: '🪙', description: 'A shiny coin for luck' },
+  { id: 'mystery_box', name: 'invites', price: 30000, emoji: '📦', description: 'Contains unknown treasure' },
+  { id: 'golden_key', name: 'common_key', price: 500, emoji: '🔑', description: 'Opens special doors' },
+  { id: 'diamond', name: 'rare_key', price: 1500, emoji: '💎', description: 'Valuable gem' },
+  { id: 'crown', name: 'legendary_key', price: 2500, emoji: '👑', description: 'Symbol of power' },
 ];
 
 module.exports = {
@@ -31,3 +31,4 @@ ${item.description}
     message.channel.send({ embeds: [embed] });
   },
 };
+
