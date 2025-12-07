@@ -22,10 +22,10 @@ module.exports = {
     const sub = (args[0] || '').toLowerCase();
     const userId = message.author.id;
 
-    // START TRADE
-    if (sub === 'start' || !sub) {
-      const targetUser = message.mentions.users.first();
-      
+    // START TRADE - check if first arg is a mention OR if sub is 'start'
+    const targetUser = message.mentions.users.first();
+    
+    if (targetUser || sub === 'start') {
       if (!targetUser) {
         return message.channel.send('Usage: `.trade @user` to start a trade');
       }
