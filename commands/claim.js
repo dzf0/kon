@@ -2,13 +2,13 @@ const { EmbedBuilder } = require('discord.js');
 const keydrop = require('./keydrop.js');
 
 module.exports = {
-  name: 'redeem',
+  name: 'claim',
   description: 'Claim the currently dropped key.',
   async execute({ message, addKeyToInventory, keydrop }) {
-    // Get the current key from keydrop (should be { rarity, channelId, claimed, ... })
-    const currentKey = keydrop.getCurrentKey();
+    // Get the current key object from keydrop
+    const currentKey = keydrop.getCurrentKey(); // expected: { rarity, channelId, claimed, ... }
 
-    // No key, already claimed, or claimed in another channel
+    // If no key, already claimed, or in a different channel -> short reply, auto delete
     if (!currentKey || currentKey.claimed || currentKey.channelId !== message.channel.id) {
       const reply = await message.reply({
         embeds: [
@@ -20,7 +20,6 @@ module.exports = {
         ],
       });
 
-      // Delete only this user’s reply after 5 seconds
       setTimeout(() => {
         reply.delete().catch(() => {});
       }, 5000);
@@ -28,10 +27,13 @@ module.exports = {
       return;
     }
 
-    // Try to claim via keydrop module; this should also update MongoDB using addKeyToInventory
+    // Ask keydrop to process the claim and update MongoDB using addKeyToInventory
     const success = await keydrop.claimKey(message.author.id, addKeyToInventory);
 
     if (success) {
+      // Mark as claimed in the in‑memory keydrop state
+      currentKey.claimed = true;
+
       const embed = new EmbedBuilder()
         .setTitle('🔑 Key Claimed!')
         .setDescription(
@@ -42,7 +44,7 @@ module.exports = {
 
       await message.channel.send({ embeds: [embed] });
     } else {
-      // Edge case: another user sniped between the checks
+      // Another user likely claimed it between checks
       const reply = await message.reply({
         embeds: [
           new EmbedBuilder()
