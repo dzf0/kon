@@ -23,26 +23,26 @@ module.exports = {
     let reward = 0;
     let result = '';
 
-    // Balanced difficulty:
-    // 6 → 3x, 5 → 2x, 4 → refund, 2–3 → lose, 1 → lose 2x
+    // Nerfed payouts: 1-2 lose, 3-6 win with lower multipliers
     if (roll === 6) {
-      reward = bet * 3;
+      reward = Math.floor(bet * 2.2);
       userData.balance += reward;
-      result = `🎲 You rolled **6**! You win **${reward}** (3x your bet)!`;
+      result = `🎲 You rolled **6**! You win **${reward}** (2.2x your bet)!`;
     } else if (roll === 5) {
-      reward = bet * 2;
+      reward = Math.floor(bet * 1.8);
       userData.balance += reward;
-      result = `🎲 You rolled **5**! You win **${reward}** (2x your bet)!`;
+      result = `🎲 You rolled **5**! You win **${reward}** (1.8x your bet)!`;
     } else if (roll === 4) {
-      // refund
-      userData.balance += bet;
-      result = `🎲 You rolled **4**. Your bet is refunded.`;
-    } else if (roll === 2 || roll === 3) {
-      result = `🎲 You rolled **${roll}**. Unlucky, you lose your bet.`;
+      reward = Math.floor(bet * 1.4);
+      userData.balance += reward;
+      result = `🎲 You rolled **4**! You win **${reward}** (1.4x your bet)!`;
+    } else if (roll === 3) {
+      reward = bet;
+      userData.balance += reward;
+      result = `🎲 You rolled **3**! You win **${reward}** (1x your bet)!`;
     } else {
-      // roll === 1: lose double
-      userData.balance -= bet;
-      result = `🎲 You rolled **1**! Critical fail — you lose 2x your bet!`;
+      // roll === 1 or 2: lose bet
+      result = `🎲 You rolled **${roll}**. Unlucky, you lose your bet.`;
     }
 
     await saveUserData({ balance: userData.balance });
