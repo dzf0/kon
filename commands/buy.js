@@ -2,9 +2,9 @@ const { EmbedBuilder } = require('discord.js');
 
 const shopItems = [
   { id: 'silv_token', name: 'Silv token', price: 10000, emoji: '🔘', description: 'A shiny coin for exchanging robux and more!' },
-  { id: 'common_key', name: 'Common key', price: 100, emoji: '🔑', description: 'gives kan' },
-  { id: 'rare_key', name: 'Rare key', price: 500, emoji: '🗝', description: 'gives currency' },
-  { id: 'legendary_key', name: 'Legendary key', price: 900, emoji: '🔑', description: 'gives currency' },
+  { id: 'Common', name: 'Common', price: 100, description: 'gives kan' },
+  { id: 'Rare', name: 'Rare', price: 500, description: 'gives currency' },
+  { id: 'Legendary', name: 'Legendary', price: 900, description: 'gives currency' },
 ];
 
 module.exports = {
