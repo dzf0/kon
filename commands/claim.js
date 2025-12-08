@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 const keydrop = require('./keydrop.js');
 
 module.exports = {
-  name: 'claim',
+  name: 'redeem',
   description: 'Claim the currently dropped key.',
   async execute({ message, addKeyToInventory, keydrop }) {
     // Get the current key object from keydrop
@@ -61,3 +61,4 @@ module.exports = {
     }
   },
 };
+
