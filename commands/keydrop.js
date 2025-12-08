@@ -46,7 +46,7 @@ async function handleKeyDrop(message, client) {
     }
   }
 
-  // 5% chance per message to spawn a new key if none active
+  // 2.5% chance per message to spawn a new key if none active
   if (!currentKey && Math.random() <= 0.025) {
     const rarity = getRandomRarity();
     currentKey = {
@@ -58,7 +58,7 @@ async function handleKeyDrop(message, client) {
 
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarity}** key dropped! Type \`.redeem\` to claim it!`)
+      .setDescription(`A **${rarity}** key dropped! Type `.claim` to claim it!`)
       .setColor('Green')
       .setTimestamp();
     await message.channel.send({ embeds: [dropEmbed] });
@@ -80,7 +80,7 @@ async function spawnKey(rarity, channelId, client) {
   if (channel) {
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type \`.redeem\` to claim it!`)
+      .setDescription(`An **${rarity}** key has been spawned! Type `.claim` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
 
@@ -91,11 +91,18 @@ async function spawnKey(rarity, channelId, client) {
 }
 
 async function claimKey(userId, addKeyToInventory) {
-  if (!currentKey || currentKey.claimed) return false;
+  // SAFETY: if no key or already claimed, do nothing and let caller handle it
+  if (!currentKey || currentKey.claimed) {
+    return false;
+  }
 
+  // Give key to user
   await addKeyToInventory(userId, currentKey.rarity, 1);
+
+  // Mark claimed then clear
   currentKey.claimed = true;
   currentKey = null;
+
   return true;
 }
 
