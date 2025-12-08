@@ -11,13 +11,13 @@ module.exports = {
   name: 'buy',
   description: 'Buy an item from the shop',
   async execute({ message, args, userData, saveUserData }) {
-    const itemId = args[0]?.toLowerCase();
+    const itemIdInput = args[0]?.toLowerCase();
     let quantity = parseInt(args[1]) || 1;
 
-    if (!itemId) {
+    if (!itemIdInput) {
       return message.channel.send(
         'Usage: `.buy <item_id> [quantity]`\n' +
-        'Example: `.buy common_key 2`\n' +
+        'Example: `.buy common 2`\n' +
         'Use `.shop` to see all items.'
       );
     }
@@ -26,10 +26,11 @@ module.exports = {
       return message.channel.send('❌ Quantity must be at least 1.');
     }
 
-    const item = shopItems.find(i => i.id === itemId);
+    // Case-insensitive search
+    const item = shopItems.find(i => i.id.toLowerCase() === itemIdInput);
     if (!item) {
       return message.channel.send(
-        `❌ Item **${itemId}** not found in shop.\nUse \`.shop\` to see available items.`
+        `❌ Item **${itemIdInput}** not found in shop.\nUse \`.shop\` to see available items.`
       );
     }
 

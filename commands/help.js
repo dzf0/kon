@@ -76,7 +76,7 @@ module.exports = {
             .setTitle('🔑 Key System')
             .setColor('#F39C12')
             .addFields(
-              { name: `${prefix}claim`, value: 'Claim a dropped key', inline: false },
+              { name: `${prefix}redeem`, value: 'Claim a dropped key', inline: false },
               { name: 'Passive Key Drops', value: 'Keys drop randomly in the key drop channel as you chat', inline: false }
             );
           break;

@@ -58,7 +58,7 @@ async function handleKeyDrop(message, client) {
 
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarity}** key dropped! Type \`.claim\` to claim it!`)
+      .setDescription(`A **${rarity}** key dropped! Type \`.redeem\` to claim it!`)
       .setColor('Green')
       .setTimestamp();
     await message.channel.send({ embeds: [dropEmbed] });
@@ -80,7 +80,7 @@ async function spawnKey(rarity, channelId, client) {
   if (channel) {
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type \`.claim\` to claim it!`)
+      .setDescription(`An **${rarity}** key has been spawned! Type \`.redeem\` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
 
