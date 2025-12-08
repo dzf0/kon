@@ -2,14 +2,14 @@ const { EmbedBuilder } = require('discord.js');
 const keydrop = require('./keydrop.js');
 
 module.exports = {
-  name: 'redeem',
+  name: 'claim',
   description: 'Claim the currently dropped key.',
   async execute({ message, addKeyToInventory }) {
-    // Read current key once
-    const snapshotKey = keydrop.getCurrentKey(); // may be null
+    // keydrop.js shared state: may be null
+    const currentKey = keydrop.getCurrentKey();
 
-    // No key / already claimed / wrong channel → short reply, auto delete
-    if (!snapshotKey || snapshotKey.claimed || snapshotKey.channelId !== message.channel.id) {
+    // No key, already claimed, or different channel
+    if (!currentKey || currentKey.claimed || currentKey.channelId !== message.channel.id) {
       const reply = await message.reply({
         embeds: [
           new EmbedBuilder()
@@ -27,22 +27,22 @@ module.exports = {
       return;
     }
 
-    // Ask keydrop to handle the claim (this will set claimed + add to inventory)
+    // Use keydrop.claimKey(userId, addKeyToInventory) exactly as defined in keydrop.js
     const success = await keydrop.claimKey(message.author.id, addKeyToInventory);
 
     if (success) {
-      // Use the snapshot’s rarity for the message; do NOT touch keydrop.currentKey
+      // currentKey was valid when we read it; claimKey() has now added the key and nulled the global
       const embed = new EmbedBuilder()
         .setTitle('🔑 Key Claimed!')
         .setDescription(
-          `${message.author} claimed a **${snapshotKey.rarity}** key! Check your inventory with `.inventory`.`
+          `${message.author} claimed a **${currentKey.rarity}** key! Check your inventory with `.inventory`.`
         )
         .setColor('Green')
         .setTimestamp();
 
       await message.channel.send({ embeds: [embed] });
     } else {
-      // Someone else claimed it in between
+      // Safety: if claimKey() returned false (e.g. race condition)
       const reply = await message.reply({
         embeds: [
           new EmbedBuilder()
@@ -59,4 +59,3 @@ module.exports = {
     }
   },
 };
-
