@@ -5,10 +5,9 @@ module.exports = {
   name: 'claim',
   description: 'Claim the currently dropped key.',
   async execute({ message, addKeyToInventory }) {
-    // keydrop.js shared state: may be null
-    const currentKey = keydrop.getCurrentKey();
+    const currentKey = keydrop.getCurrentKey(); // may be null
 
-    // No key, already claimed, or different channel
+    // No key / already claimed / wrong channel
     if (!currentKey || currentKey.claimed || currentKey.channelId !== message.channel.id) {
       const reply = await message.reply({
         embeds: [
@@ -27,11 +26,10 @@ module.exports = {
       return;
     }
 
-    // Use keydrop.claimKey(userId, addKeyToInventory) exactly as defined in keydrop.js
+    // Try to claim via keydrop (this also adds to MongoDB)
     const success = await keydrop.claimKey(message.author.id, addKeyToInventory);
 
     if (success) {
-      // currentKey was valid when we read it; claimKey() has now added the key and nulled the global
       const embed = new EmbedBuilder()
         .setTitle('🔑 Key Claimed!')
         .setDescription(
@@ -42,7 +40,7 @@ module.exports = {
 
       await message.channel.send({ embeds: [embed] });
     } else {
-      // Safety: if claimKey() returned false (e.g. race condition)
+      // Race condition: someone else got it
       const reply = await message.reply({
         embeds: [
           new EmbedBuilder()
