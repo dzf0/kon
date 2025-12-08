@@ -23,19 +23,28 @@ module.exports = {
     let reward = 0;
     let result = '';
 
+    // Easier to profit:
+    // 6 → 4x, 5 → 3x, 3–4 → 2x, 2 → refund, 1 → lose
     if (roll === 6) {
-      reward = Math.floor(bet * 3);
+      reward = bet * 4;
       userData.balance += reward;
-      result = `🎲 You rolled **6**! You win **${reward}** (3x your bet)!`;
-    } else if (roll === 4 || roll === 5) {
-      reward = Math.floor(bet * 1.5);
+      result = `🎲 You rolled **6**! You win **${reward}** (4x your bet)!`;
+    } else if (roll === 5) {
+      reward = bet * 3;
       userData.balance += reward;
-      result = `🎲 You rolled **${roll}**! You win **${reward}** (1.5x your bet)!`;
+      result = `🎲 You rolled **5**! You win **${reward}** (3x your bet)!`;
+    } else if (roll === 3 || roll === 4) {
+      reward = bet * 2;
+      userData.balance += reward;
+      result = `🎲 You rolled **${roll}**! You win **${reward}** (2x your bet)!`;
+    } else if (roll === 2) {
+      // refund
+      userData.balance += bet;
+      result = `🎲 You rolled **2**. Your bet is refunded.`;
     } else {
-      result = `🎲 You rolled **${roll}**. Unlucky, you lose your bet.`;
+      result = `🎲 You rolled **1**. Unlucky, you lose your bet.`;
     }
 
-    // Persist to MongoDB – one argument, wrapper adds userId
     await saveUserData({ balance: userData.balance });
 
     const embed = new EmbedBuilder()
