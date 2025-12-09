@@ -58,13 +58,14 @@ async function handleKeyDrop(message, client) {
 
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarity}** key dropped! Type `.claim` to claim it!`)
+      .setDescription(`A **${rarity}** key dropped! Type `.redeem` to claim it!`)
       .setColor('Green')
       .setTimestamp();
     await message.channel.send({ embeds: [dropEmbed] });
   }
 }
 
+// Used by admin.js: spawnKey(rarityKey, channelId, message.client)
 async function spawnKey(rarity, channelId, client) {
   // rarity is a STRING like "Legendary"
   if (currentKey && !currentKey.claimed) {
@@ -74,13 +75,13 @@ async function spawnKey(rarity, channelId, client) {
     };
   }
 
-  currentKey = { rarity, channelId, claimed: false };
+  currentKey = { rarity, channelId, claimed: false, spawnedBy: 'admin' };
 
   const channel = client.channels.cache.get(channelId);
   if (channel) {
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type `.claim` to claim it!`)
+      .setDescription(`An **${rarity}** key has been spawned! Type `.redeem` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
 
@@ -90,10 +91,10 @@ async function spawnKey(rarity, channelId, client) {
   return { success: true, message: `Spawned **${rarity}** key in <#${channelId}>` };
 }
 
-// UPDATED: announce claimer in channel, but only once
+// Used by claim.js: claimKey(message.author.id, addKeyToInventory, client)
 async function claimKey(userId, addKeyToInventory, client) {
   if (!currentKey || currentKey.claimed) {
-    // already claimed or no key – let .claim command handle private 5s message
+    // no active / already claimed – claim.js will handle the 5s ephemeral-style reply
     return false;
   }
 
@@ -126,4 +127,5 @@ module.exports = {
   claimKey,
   getCurrentKey,
   getRandomRarity,
+  rarities, // optional export if you want to reuse it elsewhere
 };
