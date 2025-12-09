@@ -2,7 +2,7 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
-  name: 'claim',
+  name: 'redeem',
   description: 'Claim the currently dropped key',
   /**
    * @param {Object} ctx
@@ -48,3 +48,4 @@ module.exports = {
     }, 5000);
   },
 };
+
