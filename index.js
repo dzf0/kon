@@ -167,7 +167,6 @@ client.on('messageCreate', async (message) => {
           Math.floor(Math.random() * (rewardRange.max - rewardRange.min + 1)) +
           rewardRange.min;
 
-        // Get user and update from MongoDB
         const userData = await getUserData(message.author.id);
         userData.inventory = userData.inventory || {};
         userData.inventory[wonRarity] = (userData.inventory[wonRarity] || 0) + 1;
@@ -192,7 +191,7 @@ client.on('messageCreate', async (message) => {
         guessGame.number = null;
         guessGame.channelId = null;
       }
-      return; // ignore wrong numeric guesses silently
+      return;
     }
   }
 
@@ -203,8 +202,19 @@ client.on('messageCreate', async (message) => {
   const command = client.commands.get(commandName);
   if (!command) return;
 
+  // ===== RESTRICT KEY CHANNEL =====
+  const KEYS_CHANNEL_ID = '1401925188991582338'; // your keydrop channel ID
+  const allowedInKeysChannel = ['redeem'];        // only .claim allowed
+
+  if (
+    message.channel.id === KEYS_CHANNEL_ID &&
+    !allowedInKeysChannel.includes(command.name)
+  ) {
+    return; // ignore .dice / .hl / others in key channel
+  }
+  // ================================
+
   try {
-    // Load user data from MongoDB for command
     const userData = await getUserData(message.author.id);
 
     await command.execute({
@@ -220,8 +230,8 @@ client.on('messageCreate', async (message) => {
       rarities,
       prefix,
       client,
-      logAdminAction,  // Added for admin logging
-      AdminLog,        // Added for admin logs command
+      logAdminAction,
+      AdminLog,
     });
   } catch (error) {
     console.error('Error executing command:', error);
