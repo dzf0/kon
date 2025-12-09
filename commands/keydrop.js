@@ -1,3 +1,4 @@
+// commands/keydrop.js
 const { EmbedBuilder } = require('discord.js');
 
 const KEYDROP_CHANNEL_ID = '1401925188991582338';
@@ -58,14 +59,14 @@ async function handleKeyDrop(message, client) {
 
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarity}** key dropped! Type `.redeem` to claim it!`)
+      .setDescription(`A **${rarity}** key dropped! Type `.claim` to claim it!`)
       .setColor('Green')
       .setTimestamp();
     await message.channel.send({ embeds: [dropEmbed] });
   }
 }
 
-// Used by admin.js: spawnKey(rarityKey, channelId, message.client)
+// USED BY admin.js: keydrop.spawnKey(rarityKey, channelId, message.client)
 async function spawnKey(rarity, channelId, client) {
   // rarity is a STRING like "Legendary"
   if (currentKey && !currentKey.claimed) {
@@ -81,7 +82,7 @@ async function spawnKey(rarity, channelId, client) {
   if (channel) {
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type `.redeem` to claim it!`)
+      .setDescription(`An **${rarity}** key has been spawned! Type `.claim` to claim it!`)
       .setColor('Gold')
       .setTimestamp();
 
@@ -91,17 +92,13 @@ async function spawnKey(rarity, channelId, client) {
   return { success: true, message: `Spawned **${rarity}** key in <#${channelId}>` };
 }
 
-// Used by claim.js: claimKey(message.author.id, addKeyToInventory, client)
+// USED BY claim.js: keydrop.claimKey(message.author.id, addKeyToInventory, client)
 async function claimKey(userId, addKeyToInventory, client) {
-  if (!currentKey || currentKey.claimed) {
-    // no active / already claimed – claim.js will handle the 5s ephemeral-style reply
-    return false;
-  }
+  if (!currentKey || currentKey.claimed) return false;
 
   await addKeyToInventory(userId, currentKey.rarity, 1);
   currentKey.claimed = true;
 
-  // Public announcement of who claimed it
   const channel = client.channels.cache.get(currentKey.channelId);
   if (channel) {
     const claimEmbed = new EmbedBuilder()
@@ -127,5 +124,5 @@ module.exports = {
   claimKey,
   getCurrentKey,
   getRandomRarity,
-  rarities, // optional export if you want to reuse it elsewhere
+  rarities,
 };
