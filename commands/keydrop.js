@@ -41,7 +41,7 @@ async function handleKeyDrop(message, client) {
           .setDescription(`The **${currentKey.rarity}** key expired.`)
           .setColor('Red')
           .setTimestamp();
-        channel.send({ embeds: [expireEmbed] });
+        await channel.send({ embeds: [expireEmbed] });
       }
       currentKey = null;
     }
@@ -49,9 +49,10 @@ async function handleKeyDrop(message, client) {
 
   // 5% chance per message to spawn a new key if none active
   if (!currentKey && Math.random() <= 0.05) {
-    const rarity = getRandomRarity();
+    const rarityName = getRandomRarity();   // plain string
+
     currentKey = {
-      rarity, // string like "Legendary"
+      rarity: rarityName,               // store the string
       channelId: message.channel.id,
       claimed: false,
       spawnedBy: 'auto',
@@ -59,9 +60,10 @@ async function handleKeyDrop(message, client) {
 
     const dropEmbed = new EmbedBuilder()
       .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarity}** key dropped! Type `.claim` to claim it!`)
+      .setDescription(`A **${rarityName}** key dropped! Type `.claim` to claim it!`)
       .setColor('Green')
       .setTimestamp();
+
     await message.channel.send({ embeds: [dropEmbed] });
   }
 }
