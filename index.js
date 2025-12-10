@@ -204,7 +204,7 @@ client.on('messageCreate', async (message) => {
 
   // ===== RESTRICT KEY CHANNEL =====
   const KEYS_CHANNEL_ID = '1401925188991582338'; // your keydrop channel ID
-  const allowedInKeysChannel = ['redeem','hangman'];        // only .claim allowed
+  const allowedInKeysChannel = ['redeem','hangman','inventory','bal','baltop'];        // only .claim allowed
 
   if (
     message.channel.id === KEYS_CHANNEL_ID &&
