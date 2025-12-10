@@ -6,9 +6,9 @@ const activeTrades = new Map();
 // Helper function to find item in inventory (case-insensitive)
 function findInventoryItem(inventory, itemName) {
   if (!inventory) return null;
-  const lowerName = itemName.toLowerCase();
+  const lowerName = itemName.toLowerCase().trim();
   for (const key of Object.keys(inventory)) {
-    if (key.toLowerCase() === lowerName) {
+    if (key.toLowerCase().trim() === lowerName) {
       return key; // Return actual key from inventory
     }
   }
@@ -66,9 +66,9 @@ module.exports = {
           `${message.author} wants to trade with ${targetUser}!\n\n` +
           `**Commands:**\n` +
           `\`.trade offer currency <amount>\` - Offer coins\n` +
-          `\`.trade offer item <item_name> <amount>\` - Offer inventory items\n` +
+          `\`.trade offer item <item name> <amount>\` - Offer inventory items\n` +
           `\`.trade remove currency <amount>\` - Remove coins from offer\n` +
-          `\`.trade remove item <item_name> <amount>\` - Remove items from offer\n` +
+          `\`.trade remove item <item name> <amount>\` - Remove items from offer\n` +
           `\`.trade view\` - View current offers\n` +
           `\`.trade confirm\` - Confirm your side\n` +
           `\`.trade cancel\` - Cancel trade`
@@ -113,11 +113,23 @@ module.exports = {
       }
 
       if (offerType === 'item') {
-        const itemNameInput = args[2];
-        const amount = parseInt(args[3]);
+        // Parse item name (collect all words until we hit a number)
+        let itemNameParts = [];
+        let amount = null;
 
-        if (!itemNameInput || isNaN(amount) || amount <= 0) {
-          return message.channel.send('Usage: `.trade offer item <item_name> <amount>`');
+        for (let i = 2; i < args.length; i++) {
+          const parsed = parseInt(args[i]);
+          if (!isNaN(parsed) && parsed > 0) {
+            amount = parsed;
+            break;
+          }
+          itemNameParts.push(args[i]);
+        }
+
+        const itemNameInput = itemNameParts.join(' ').trim();
+
+        if (!itemNameInput || !amount || amount <= 0) {
+          return message.channel.send('Usage: `.trade offer item <item name> <amount>`');
         }
 
         // Find actual item name in inventory (case-insensitive)
@@ -150,7 +162,7 @@ module.exports = {
         );
       }
 
-      return message.channel.send('Usage: `.trade offer currency <amount>` or `.trade offer item <item_name> <amount>`');
+      return message.channel.send('Usage: `.trade offer currency <amount>` or `.trade offer item <item name> <amount>`');
     }
 
     // REMOVE FROM OFFER
@@ -181,11 +193,23 @@ module.exports = {
       }
 
       if (removeType === 'item') {
-        const itemNameInput = args[2];
-        const amount = parseInt(args[3]);
+        // Parse item name (collect all words until we hit a number)
+        let itemNameParts = [];
+        let amount = null;
 
-        if (!itemNameInput || isNaN(amount) || amount <= 0) {
-          return message.channel.send('Usage: `.trade remove item <item_name> <amount>`');
+        for (let i = 2; i < args.length; i++) {
+          const parsed = parseInt(args[i]);
+          if (!isNaN(parsed) && parsed > 0) {
+            amount = parsed;
+            break;
+          }
+          itemNameParts.push(args[i]);
+        }
+
+        const itemNameInput = itemNameParts.join(' ').trim();
+
+        if (!itemNameInput || !amount || amount <= 0) {
+          return message.channel.send('Usage: `.trade remove item <item name> <amount>`');
         }
 
         const isInitiator = userId === trade.initiator;
@@ -223,7 +247,7 @@ module.exports = {
         return message.channel.send(`✅ Removed **${amount} ${actualItemName}** from your offer.`);
       }
 
-      return message.channel.send('Usage: `.trade remove currency <amount>` or `.trade remove item <item_name> <amount>`');
+      return message.channel.send('Usage: `.trade remove currency <amount>` or `.trade remove item <item name> <amount>`');
     }
 
     // VIEW TRADE
@@ -401,9 +425,9 @@ module.exports = {
       '**Trade Commands:**\n' +
       '`.trade @user` - Start trade\n' +
       '`.trade offer currency <amount>` - Offer coins\n' +
-      '`.trade offer item <item_name> <amount>` - Offer any inventory item\n' +
+      '`.trade offer item <item name> <amount>` - Offer any inventory item\n' +
       '`.trade remove currency <amount>` - Remove coins\n' +
-      '`.trade remove item <item_name> <amount>` - Remove items\n' +
+      '`.trade remove item <item name> <amount>` - Remove items\n' +
       '`.trade view` - View offers\n' +
       '`.trade confirm` - Confirm trade\n' +
       '`.trade cancel` - Cancel trade'
