@@ -259,7 +259,7 @@ module.exports = {
   name: 'roll',
   description: 'Roll for anime characters from crates',
   async execute({ message, args, userData, saveUserData }) {
-    const cost = 500; // cost per roll
+    const cost = 0; // cost per roll
 
     if (userData.balance < cost) {
       return message.channel.send(`❌ You need **${cost}** coins to roll! Your balance: **${userData.balance}**`);
