@@ -1,130 +1,80 @@
-// commands/keydrop.js
 const { EmbedBuilder } = require('discord.js');
 
-const KEYDROP_CHANNEL_ID = '1401925188991582338';
-
-let currentKey = null;
-
-// Rarity chances are *within* the overall drop rate
-const rarities = [
-  { name: 'Prismatic', chance: 0.0001 },
-  { name: 'Mythical',  chance: 0.001 },
-  { name: 'Legendary', chance: 0.01  },
-  { name: 'Rare',      chance: 0.03  },
-  { name: 'Uncommon',  chance: 0.05  },
-  { name: 'Common',    chance: 0.10  },
-];
-
-function getRandomRarity() {
-  const roll = Math.random();
-  let cumulative = 0;
-  for (const rarity of rarities) {
-    cumulative += rarity.chance;
-    if (roll <= cumulative) return rarity.name;
-  }
-  return rarities[rarities.length - 1].name;
-}
-
-async function handleKeyDrop(message, client) {
-  if (message.author.bot) return;
-
-  // Only drop in the keydrop channel
-  if (message.channel.id !== KEYDROP_CHANNEL_ID) return;
-
-  // Chance to expire an existing unclaimed key
-  if (currentKey && !currentKey.claimed) {
-    if (Math.random() <= 0.03) {
-      const channel = client.channels.cache.get(currentKey.channelId);
-      if (channel) {
-        const expireEmbed = new EmbedBuilder()
-          .setTitle('Key Expired')
-          .setDescription(`The **${currentKey.rarity}** key expired.`)
-          .setColor('Red')
-          .setTimestamp();
-        await channel.send({ embeds: [expireEmbed] });
-      }
-      currentKey = null;
-    }
-  }
-
-  // 5% chance per message to spawn a new key if none active
-  if (!currentKey && Math.random() <= 0.025) {
-    const rarityName = getRandomRarity(); // string like "Legendary"
-
-    currentKey = {
-      rarity: rarityName,
-      channelId: message.channel.id,
-      claimed: false,
-      spawnedBy: 'auto',
-    };
-
-    const dropEmbed = new EmbedBuilder()
-      .setTitle('🔑 Key Dropped!')
-      .setDescription(`A **${rarityName}** key dropped! Type .redeem to claim it!`)
-      .setColor('Green')
-      .setTimestamp();
-
-    await message.channel.send({ embeds: [dropEmbed] });
-  }
-}
-
-// Used by admin.js: keydrop.spawnKey(rarityKey, channelId, message.client)
-async function spawnKey(rarity, channelId, client) {
-  // rarity is a STRING like "Legendary"
-  if (currentKey && !currentKey.claimed) {
-    return {
-      success: false,
-      message: 'There is already an active key. Wait until it is claimed or expires.',
-    };
-  }
-
-  currentKey = { rarity, channelId, claimed: false, spawnedBy: 'admin' };
-
-  const channel = client.channels.cache.get(channelId);
-  if (channel) {
-    const dropEmbed = new EmbedBuilder()
-      .setTitle('🔑 Key Spawned by Admin')
-      .setDescription(`An **${rarity}** key has been spawned! Type .redeem to claim it!`)
-      .setColor('Gold')
-      .setTimestamp();
-
-    await channel.send({ embeds: [dropEmbed] });
-  }
-
-  return { success: true, message: `Spawned **${rarity}** key in <#${channelId}>` };
-}
-
-// Used by claim.js: keydrop.claimKey(message.author.id, addKeyToInventory, client)
-async function claimKey(userId, addKeyToInventory, client) {
-  if (!currentKey || currentKey.claimed) return false;
-
-  await addKeyToInventory(userId, currentKey.rarity, 1);
-  currentKey.claimed = true;
-
-  const channel = client.channels.cache.get(currentKey.channelId);
-  if (channel) {
-    const claimEmbed = new EmbedBuilder()
-      .setTitle('🔑 Key Claimed!')
-      .setDescription(`<@${userId}> claimed the **${currentKey.rarity}** key!`)
-      .setColor('Gold')
-      .setTimestamp();
-
-    await channel.send({ embeds: [claimEmbed] });
-  }
-
-  currentKey = null;
-  return true;
-}
-
-function getCurrentKey() {
-  return currentKey;
-}
+const rewardsByRarity = {
+  Prismatic: { min: 500, max: 1000 },
+  Mythical:  { min: 300, max: 600 },
+  Legendary: { min: 200, max: 400 },
+  Rare:      { min: 100, max: 200 },
+  Uncommon:  { min: 50,  max: 100 },
+  Common:    { min: 10,  max: 50 },
+};
 
 module.exports = {
-  handleKeyDrop,
-  spawnKey,
-  claimKey,
-  getCurrentKey,
-  getRandomRarity,
-  rarities,
+  name: 'redeem',
+  description: 'Redeem keys from your inventory for coins',
+  async execute({ message, args, userData, saveUserData }) {
+    const keyName = args.slice(0, -1).join(' ').trim(); // Everything except last arg
+    const amount = parseInt(args[args.length - 1]) || 1; // Last arg is amount
+
+    if (!keyName || amount < 1) {
+      return message.channel.send('Usage: `.redeem <key name> [amount]`\nExample: `.redeem Common 5`');
+    }
+
+    const inventory = userData.inventory || {};
+
+    // Find the key (case-insensitive)
+    const actualKeyName = Object.keys(inventory).find(
+      key => key.toLowerCase().trim() === keyName.toLowerCase().trim()
+    );
+
+    if (!actualKeyName) {
+      return message.channel.send(`❌ You don't have any **${keyName}** keys!`);
+    }
+
+    const userKeyCount = inventory[actualKeyName] || 0;
+
+    if (userKeyCount < amount) {
+      return message.channel.send(
+        `❌ You only have **${userKeyCount} ${actualKeyName}** key(s), but tried to redeem **${amount}**.`
+      );
+    }
+
+    // Calculate total reward
+    let totalCoins = 0;
+    const rewardRange = rewardsByRarity[actualKeyName] || { min: 10, max: 50 };
+
+    for (let i = 0; i < amount; i++) {
+      const reward = Math.floor(Math.random() * (rewardRange.max - rewardRange.min + 1)) + rewardRange.min;
+      totalCoins += reward;
+    }
+
+    // IMPORTANT: Update inventory FIRST (remove keys)
+    inventory[actualKeyName] = userKeyCount - amount;
+    
+    // Clean up zero entries
+    if (inventory[actualKeyName] === 0) {
+      delete inventory[actualKeyName];
+    }
+
+    // IMPORTANT: Update balance (add coins)
+    userData.balance = (userData.balance || 0) + totalCoins;
+
+    // IMPORTANT: Save BOTH changes together
+    await saveUserData({
+      balance: userData.balance,
+      inventory: userData.inventory
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('💰 Keys Redeemed!')
+      .setDescription(
+        `You redeemed **${amount} ${actualKeyName}** key(s)!\n\n` +
+        `**Earned:** +${totalCoins} coins\n` +
+        `**New Balance:** ${userData.balance} coins`
+      )
+      .setColor('#00FF00')
+      .setTimestamp();
+
+    return message.channel.send({ embeds: [embed] });
+  }
 };

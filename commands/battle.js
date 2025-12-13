@@ -13,6 +13,22 @@ const healthByTier = {
   'D': 100
 };
 
+// Move usage limits by damage tier
+const moveUsageLimits = {
+  'S+': 2,
+  'S': 4,
+  'A': 7,
+  'A-S': 7,
+  'A+': 7,
+  'B-A': 10,
+  'B': 12,
+  'C-B': 15,
+  'C': 20,
+  'D': 25,
+  'Utility': 999,
+  'Varies': 5
+};
+
 // Damage calculation based on move tier
 function calculateDamage(moveDamage) {
   const damageMap = {
@@ -41,13 +57,40 @@ function calculateDamage(moveDamage) {
   return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
 }
 
-// Initialize character for battle
+// Check if attack is dodged (1% chance)
+function checkDodge() {
+  const dodgeChance = 0.01; // 1% chance
+  return Math.random() < dodgeChance;
+}
+
+// Get move usage limit
+function getMoveUsageLimit(moveDamage) {
+  const limit = moveUsageLimits[moveDamage];
+  if (limit) return limit;
+
+  // For custom tiers, check if they contain S or A
+  const damageStr = String(moveDamage).toUpperCase();
+  if (damageStr.includes('S+')) return 2;
+  if (damageStr.includes('S')) return 4;
+  if (damageStr.includes('A')) return 7;
+  if (damageStr.includes('B')) return 12;
+  if (damageStr.includes('C')) return 20;
+  if (damageStr.includes('D')) return 25;
+
+  return 999; // default unlimited
+}
+
+// Initialize character for battle with move tracking
 function initCharacter(char) {
   return {
     name: char.name,
     series: char.series,
     tier: char.tier,
-    moves: char.moves,
+    moves: char.moves.map(move => ({
+      ...move,
+      usesRemaining: getMoveUsageLimit(move.damage),
+      maxUses: getMoveUsageLimit(move.damage)
+    })),
     currentHealth: healthByTier[char.tier] || 100,
     maxHealth: healthByTier[char.tier] || 100
   };
@@ -260,10 +303,10 @@ module.exports = {
 
         await message.channel.send({ embeds: [startEmbed] });
 
-        // Show current character and moves
+        // Show current character and moves with usage
         const currentChar = battle.challengerTeam[0];
         const movesList = currentChar.moves.map((m, i) => 
-          `${i + 1}. **${m.name}** (${m.damage})`
+          `${i + 1}. **${m.name}** (${m.damage}) - ${m.usesRemaining}/${m.maxUses} uses`
         ).join('\n');
 
         const moveEmbed = new EmbedBuilder()
@@ -311,6 +354,11 @@ module.exports = {
 
       const move = attacker.moves[moveNum - 1];
 
+      // Check if move has uses left
+      if (move.usesRemaining <= 0) {
+        return message.channel.send(`❌ **${move.name}** has no uses left! Choose another move.`);
+      }
+
       // Find first alive defender
       const defender = defenderTeam.find(c => c.currentHealth > 0);
       if (!defender) {
@@ -329,23 +377,45 @@ module.exports = {
         return message.channel.send({ embeds: [winEmbed] });
       }
 
-      // Calculate damage
-      const damage = calculateDamage(move.damage);
-      defender.currentHealth = Math.max(0, defender.currentHealth - damage);
+      // Decrease move usage
+      move.usesRemaining--;
 
-      const actionEmbed = new EmbedBuilder()
-        .setTitle(`${attacker.name} used ${move.name}!`)
-        .setDescription(
-          `💥 Dealt **${damage}** damage to ${defender.name}!\n\n` +
-          `**${defender.name}** - HP: ${defender.currentHealth}/${defender.maxHealth}`
-        )
-        .setColor('#FF6B6B')
-        .setTimestamp();
+      // Check if attack is dodged
+      const isDodged = checkDodge();
+
+      let actionEmbed;
+
+      if (isDodged) {
+        // Dodge message
+        actionEmbed = new EmbedBuilder()
+          .setTitle(`${attacker.name} used ${move.name}!`)
+          .setDescription(
+            `🛡️ **${defender.name} DODGED THE ATTACK!**\n\n` +
+            `**${defender.name}** - HP: ${defender.currentHealth}/${defender.maxHealth}\n` +
+            `**${move.name}** - ${move.usesRemaining}/${move.maxUses} uses remaining`
+          )
+          .setColor('#FFD700')
+          .setTimestamp();
+      } else {
+        // Normal attack
+        const damage = calculateDamage(move.damage);
+        defender.currentHealth = Math.max(0, defender.currentHealth - damage);
+
+        actionEmbed = new EmbedBuilder()
+          .setTitle(`${attacker.name} used ${move.name}!`)
+          .setDescription(
+            `💥 Dealt **${damage}** damage to ${defender.name}!\n\n` +
+            `**${defender.name}** - HP: ${defender.currentHealth}/${defender.maxHealth}\n` +
+            `**${move.name}** - ${move.usesRemaining}/${move.maxUses} uses remaining`
+          )
+          .setColor('#FF6B6B')
+          .setTimestamp();
+      }
 
       await message.channel.send({ embeds: [actionEmbed] });
 
-      // Check if defender died
-      if (defender.currentHealth === 0) {
+      // Check if defender died (only if not dodged)
+      if (!isDodged && defender.currentHealth === 0) {
         await message.channel.send(`💀 **${defender.name}** has been defeated!`);
 
         // Check if all defenders dead
@@ -374,7 +444,7 @@ module.exports = {
       const nextChar = nextTeam.find(c => c.currentHealth > 0);
 
       const movesList = nextChar.moves.map((m, i) => 
-        `${i + 1}. **${m.name}** (${m.damage})`
+        `${i + 1}. **${m.name}** (${m.damage}) - ${m.usesRemaining}/${m.maxUses} uses`
       ).join('\n');
 
       const nextTurnEmbed = new EmbedBuilder()
