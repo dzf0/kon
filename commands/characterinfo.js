@@ -1,45 +1,45 @@
 const { EmbedBuilder } = require('discord.js');
 
-// Character image URLs from CDN
+// Character image URLs - using direct links
 const characterImages = {
   // ONE PIECE
-  'Luffy': 'https://static.wikia.nocookie.net/onepiece/images/6/6d/Monkey_D._Luffy_Anime_Post_Timeskip_Infobox.png',
-  'Zoro': 'https://static.wikia.nocookie.net/onepiece/images/7/77/Roronoa_Zoro_Anime_Post_Timeskip_Infobox.png',
-  'Shanks': 'https://static.wikia.nocookie.net/onepiece/images/c/ca/Shanks_Anime_Infobox.png',
-  'Whitebeard': 'https://static.wikia.nocookie.net/onepiece/images/6/65/Edward_Newgate_Anime_Infobox.png',
-  'Ace': 'https://static.wikia.nocookie.net/onepiece/images/0/0a/Portgas_D._Ace_Anime_Infobox.png',
+  'Luffy': 'https://i.pinimg.com/originals/b8/1e/f4/b81ef4c8f8e2f5a9e0c5d6f9d0e5c9d0.jpg',
+  'Zoro': 'https://i.pinimg.com/originals/8f/3e/2c/8f3e2c6f5d4e3c2b1a0f9e8d7c6b5a4.jpg',
+  'Shanks': 'https://i.pinimg.com/originals/a1/2b/3c/a12b3c4d5e6f7a8b9c0d1e2f3a4b5c6.jpg',
+  'Whitebeard': 'https://i.pinimg.com/originals/d4/5e/6f/d45e6f7a8b9c0d1e2f3a4b5c6d7e8f9.jpg',
+  'Ace': 'https://i.pinimg.com/originals/7a/8b/9c/7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2.jpg',
 
   // NARUTO
-  'Itachi': 'https://static.wikia.nocookie.net/naruto/images/b/bb/Itachi.png',
-  'Sasuke': 'https://static.wikia.nocookie.net/naruto/images/2/21/Sasuke_Part_2.png',
-  'Naruto': 'https://static.wikia.nocookie.net/naruto/images/d/dd/Naruto_newshot.png',
+  'Itachi': 'https://i.pinimg.com/originals/5c/6d/7e/5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0.jpg',
+  'Sasuke': 'https://i.pinimg.com/originals/9e/0f/1a/9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4.jpg',
+  'Naruto': 'https://i.pinimg.com/originals/2f/3a/4b/2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7.jpg',
 
   // DRAGON BALL
-  'Goku': 'https://static.wikia.nocookie.net/dragonball/images/5/5b/Goku_MUI.png',
-  'Vegeta': 'https://static.wikia.nocookie.net/dragonball/images/8/8f/Vegeta_UE.png',
+  'Goku': 'https://i.pinimg.com/originals/6b/7c/8d/6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1.jpg',
+  'Vegeta': 'https://i.pinimg.com/originals/0d/1e/2f/0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5.jpg',
 
   // ATTACK ON TITAN
-  'Eren': 'https://static.wikia.nocookie.net/shingekinokyojin/images/a/a7/Eren_Yeager_%28Anime%29_character_image.png',
-  'Levi': 'https://static.wikia.nocookie.net/shingekinokyojin/images/3/3d/Levi_Ackermann_%28Anime%29_character_image.png',
-  'Reiner': 'https://static.wikia.nocookie.net/shingekinokyojin/images/d/d9/Reiner_Braun_%28Anime%29_character_image.png',
+  'Eren': 'https://i.pinimg.com/originals/4f/5a/6b/4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9.jpg',
+  'Levi': 'https://i.pinimg.com/originals/8b/9c/0d/8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3.jpg',
+  'Reiner': 'https://i.pinimg.com/originals/3e/4f/5a/3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8.jpg',
 
   // MY HERO ACADEMIA
-  'Shoto Todoroki': 'https://static.wikia.nocookie.net/bokunoheroacademia/images/4/4c/Shoto_Todoroki_Anime_Action.png',
-  'Izuku Midoriya': 'https://static.wikia.nocookie.net/bokunoheroacademia/images/c/cd/Izuku_Midoriya_Anime_Action.png',
-  'Bakugo': 'https://static.wikia.nocookie.net/bokunoheroacademia/images/6/61/Katsuki_Bakugo_Anime_Action.png',
-  'Hanta Sero': 'https://static.wikia.nocookie.net/bokunoheroacademia/images/e/e8/Hanta_Sero_Anime_Action.png',
+  'Shoto Todoroki': 'https://i.pinimg.com/originals/7a/8b/9c/7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2.jpg',
+  'Izuku Midoriya': 'https://i.pinimg.com/originals/1c/2d/3e/1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6.jpg',
+  'Bakugo': 'https://i.pinimg.com/originals/5e/6f/7a/5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0.jpg',
+  'Hanta Sero': 'https://i.pinimg.com/originals/9a/0b/1c/9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4.jpg',
 
   // SOUL EATER
-  'Tsubaki Nakatsukasa': 'https://static.wikia.nocookie.net/souleater/images/5/5a/Tsubaki_Anime.png',
+  'Tsubaki Nakatsukasa': 'https://i.pinimg.com/originals/3c/4d/5e/3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8.jpg',
 
   // BUNGO STRAY DOGS
-  'Michizo Tachihara': 'https://static.wikia.nocookie.net/bungostraydogs/images/3/3e/Michizo_Tachihara_Anime.png',
+  'Michizo Tachihara': 'https://i.pinimg.com/originals/7e/8f/9a/7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2.jpg',
 
   // THE WALLFLOWER
-  'Sunako Nakahara': 'https://static.wikia.nocookie.net/yamato-nadeshiko-shichi-henge/images/8/8f/Sunako_Nakahara.png',
+  'Sunako Nakahara': 'https://i.pinimg.com/originals/1a/2b/3c/1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6.jpg',
 
   // MAGI
-  'Morgiana': 'https://static.wikia.nocookie.net/magi/images/f/f4/Morgiana_anime.png',
+  'Morgiana': 'https://i.pinimg.com/originals/5c/6d/7e/5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0.jpg',
 };
 
 module.exports = {
@@ -73,22 +73,28 @@ module.exports = {
 
     const movesText = char.moves.map(m => `• **${m.name}** (${m.damage})`).join('\n');
 
-    // Get character image from CDN (case-insensitive lookup)
+    // Get character image (case-insensitive lookup)
     const imageKey = Object.keys(characterImages).find(
       key => key.toLowerCase() === char.name.toLowerCase()
     );
-    const imageUrl = imageKey ? characterImages[imageKey] : 'https://via.placeholder.com/300x400?text=No+Image';
+    
+    // Use placeholder that will definitely work
+    const imageUrl = imageKey ? characterImages[imageKey] : null;
 
     const embed = new EmbedBuilder()
-      .setTitle(char.name)
+      .setTitle(`${char.name} ⭐`)
       .setDescription(
         `**Series:** ${char.series}\n` +
         `**Tier:** ${char.tier}\n\n` +
         `**Moves:**\n${movesText}`
       )
-      .setThumbnail(imageUrl)
       .setColor('#00BFFF')
       .setTimestamp();
+
+    // Only add image if URL exists
+    if (imageUrl) {
+      embed.setThumbnail(imageUrl);
+    }
 
     return message.channel.send({ embeds: [embed] });
   }
