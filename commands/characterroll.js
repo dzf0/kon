@@ -29,8 +29,8 @@ const characters = {
     moves: [
       { name: 'Onigiri', damage: 'B' },
       { name: 'Asura Ichibugin', damage: 'A' },
-      { name: 'Purgatory Onigiri', damage: 'A+' },
-      { name: '3000 Worlds', damage: 'A-S' }
+      { name: 'Purgatory Onigiri', damage: 'A' },
+      { name: '3000 Worlds', damage: 'S' }
     ]
   },
   'Shanks': {
@@ -59,7 +59,7 @@ const characters = {
     moves: [
       { name: 'Fire Fist', damage: 'A' },
       { name: 'Firefly', damage: 'B' },
-      { name: 'Flame Emperor', damage: 'A-S' },
+      { name: 'Flame Emperor', damage: 'A' },
       { name: 'Fire Pillar', damage: 'A' }
     ]
   },
@@ -70,19 +70,19 @@ const characters = {
     tier: 'S',
     moves: [
       { name: 'Amaterasu', damage: 'S' },
-      { name: 'Tsukuyomi', damage: 'S (Mind)' },
-      { name: 'Susanoo (Totsuka Blade)', damage: 'S' },
-      { name: 'Fireball Jutsu', damage: 'C-B' }
+      { name: 'Tsukuyomi', damage: 'S' },
+      { name: 'Susanoo (Totsuka Blade)', damage: 'S+' },
+      { name: 'Fireball Jutsu', damage: 'A' }
     ]
   },
   'Sasuke': {
     series: 'Naruto',
     tier: 'S+',
     moves: [
-      { name: 'Chidori', damage: 'B-A' },
+      { name: 'Chidori', damage: 'A' },
       { name: 'Amaterasu Control', damage: 'S' },
       { name: 'Kirin', damage: 'S+' },
-      { name: 'Susanoo Arrow', damage: 'A-S' }
+      { name: 'Susanoo Arrow', damage: 'A' }
     ]
   },
   'Naruto': {
@@ -101,7 +101,7 @@ const characters = {
     series: 'Dragon Ball',
     tier: 'S+',
     moves: [
-      { name: 'Kamehameha', damage: 'A-S' },
+      { name: 'Kamehameha', damage: 'A' },
       { name: 'Spirit Bomb', damage: 'S+' },
       { name: 'Instant Transmission Strike', damage: 'A' },
       { name: 'Ultra Instinct Strikes', damage: 'S+' }
@@ -112,7 +112,7 @@ const characters = {
     tier: 'S+',
     moves: [
       { name: 'Final Flash', damage: 'S' },
-      { name: 'Big Bang Attack', damage: 'A-S' },
+      { name: 'Big Bang Attack', damage: 'S' },
       { name: 'Galick Gun', damage: 'A' },
       { name: 'Final Explosion', damage: 'S+' }
     ]
@@ -125,7 +125,7 @@ const characters = {
     moves: [
       { name: 'Titan Transformation Explosion', damage: 'B' },
       { name: 'Attack Titan Punches', damage: 'A' },
-      { name: 'Founding Titan Control', damage: 'Varies' },
+      { name: 'Founding Titan Control', damage: 'S+' },
       { name: 'War Hammer Weapons', damage: 'A' }
     ]
   },
@@ -165,7 +165,7 @@ const characters = {
     series: 'My Hero Academia',
     tier: 'A',
     moves: [
-      { name: 'Detroit Smash', damage: 'A-S' },
+      { name: 'Detroit Smash', damage: 'S' },
       { name: 'Blackwhip', damage: 'B' },
       { name: 'Float', damage: 'Utility' },
       { name: 'Fa Jin Burst', damage: 'A' }
@@ -176,7 +176,7 @@ const characters = {
     tier: 'B',
     moves: [
       { name: 'AP Shot', damage: 'A' },
-      { name: 'Howitzer Impact', damage: 'A-S' },
+      { name: 'Howitzer Impact', damage: 'S' },
       { name: 'Stun Grenade', damage: 'C' },
       { name: 'Blast Rush', damage: 'B' }
     ]
