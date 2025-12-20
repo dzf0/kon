@@ -112,6 +112,11 @@ const client = new Client({
 client.commands = new Collection();
 const prefix = '.';
 
+// ===== GLOBAL COOLDOWNS MAP (per user + command) =====
+// Map<commandName, Map<userId, timestamp>>
+const cooldowns = new Map();
+const COOLDOWN_MS = 5000;
+
 // Load commands dynamically (EXCLUDE keydrop.js)
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.existsSync(commandsPath)
@@ -214,6 +219,27 @@ client.on('messageCreate', async (message) => {
     return; // ignore .dice / .hl / others in key channel
   }
   // ================================
+
+  // ===== PER-USER PER-COMMAND COOLDOWN (5s) =====
+  if (!cooldowns.has(command.name)) {
+    cooldowns.set(command.name, new Map());
+  }
+  const now = Date.now();
+  const timestamps = cooldowns.get(command.name);
+  const cooldownAmount = COOLDOWN_MS;
+
+  if (timestamps.has(message.author.id)) {
+    const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
+
+    if (now < expirationTime) {
+      const remaining = ((expirationTime - now) / 1000).toFixed(1);
+      return message.channel.send(`⏳ Please wait **${remaining}s** before using \`${prefix}${command.name}\` again.`);
+    }
+  }
+
+  timestamps.set(message.author.id, now);
+  setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
+  // ===============================================
 
   try {
     const userData = await getUserData(message.author.id);
