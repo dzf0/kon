@@ -34,6 +34,7 @@ const shopItemSchema = new mongoose.Schema({
   priceSilv: { type: Number, default: 0 },
   spawnChance: { type: Number, default: 100 },
   roleId: { type: String, default: null },
+  roleDays: { type: Number, default: 0 }, // 0 = permanent
 });
 
 const ShopItem =
@@ -63,7 +64,10 @@ module.exports = {
 };
 
 // ================== ADMIN: ADD ITEM ==================
-// .shop add Name(with spaces) item_id Category priceCoins priceSilv chance [roleId]
+// .shop add (name) (item_id) (category) (priceCoins) (priceSilv) (chance 0-100) [roleId] [roleDays]
+// examples:
+// .shop add mystery box mystery_box Mythical 0 3 10
+// .shop add SILV MEMBER silv_member Exclusive 0 5 50 1452...5026 7
 async function handleAddItem({ message, args }) {
   const member = message.member;
   if (!member.roles.cache.has(SHOP_ADMIN_ROLE_ID)) {
@@ -79,11 +83,12 @@ async function handleAddItem({ message, args }) {
       .setTitle('˗ˏˋ 📜 SHOP ADD USAGE ˎˊ˗')
       .setDescription(
         [
-          
-          '.shop add (name) (item_id) (category) (priceCoins) (priceSilv) (chance 0-100) [roleId]',
+          '```',
+          '.shop add (name) (item_id) (category) (priceCoins) (priceSilv) (chance 0-100) [roleId] [roleDays]',
           '',
           'Example:',
-          '.shop add mystery box mystery_box mythical 0 3 10',
+          '.shop add mystery box mystery_box Mythical 0 3 10',
+          '.shop add SILV MEMBER silv_member Exclusive 0 5 50 1452178800459645026 7',
           '```',
         ].join('\n'),
       )
@@ -91,19 +96,19 @@ async function handleAddItem({ message, args }) {
     return message.channel.send({ embeds: [embed] });
   }
 
-  const hasRoleId = args.length >= 7;
-  const fixedCount = hasRoleId ? 5 : 4; // id + category + priceCoins + priceSilv + chance(+roleId)
-
-  const nameParts = args.slice(0, args.length - fixedCount);
+  // We assume item_id is ONE word (no spaces).
+  // So: take everything up to the item_id as name.
+  const itemIdIndex = 1; // first arg after name
+  const nameParts = args.slice(0, itemIdIndex);
   const rawName = nameParts.join(' ');
-  const rawId = args[args.length - fixedCount];
-  const rawCategory = args[args.length - fixedCount + 1];
-  const rawPriceCoins = args[args.length - fixedCount + 2];
-  const rawPriceSilv = args[args.length - fixedCount + 3];
-  const rawChance = hasRoleId
-    ? args[args.length - fixedCount + 4]
-    : args[args.length - fixedCount + 3];
-  const rawRoleId = hasRoleId ? args[args.length - 1] : null;
+
+  const rawId = args[itemIdIndex];
+  const rawCategory = args[itemIdIndex + 1];
+  const rawPriceCoins = args[itemIdIndex + 2];
+  const rawPriceSilv = args[itemIdIndex + 3];
+  const rawChance = args[itemIdIndex + 4];
+  const rawRoleId = args[itemIdIndex + 5] || null;
+  const rawRoleDays = args[itemIdIndex + 6] || null;
 
   const name = rawName;
   const itemId = rawId.toLowerCase();
@@ -112,6 +117,7 @@ async function handleAddItem({ message, args }) {
   const priceSilv = Number(rawPriceSilv);
   const spawnChance = Number(rawChance);
   const roleId = rawRoleId || null;
+  const roleDays = rawRoleDays ? Number(rawRoleDays) : 0;
 
   if (Number.isNaN(priceCoins) || priceCoins < 0 || Number.isNaN(priceSilv) || priceSilv < 0) {
     const embed = new EmbedBuilder()
@@ -125,6 +131,14 @@ async function handleAddItem({ message, args }) {
     const embed = new EmbedBuilder()
       .setTitle('✧˚₊‧ ✖ INVALID CHANCE ‧₊˚✧')
       .setDescription('Chance must be **0–100** (percent).')
+      .setColor('#e74c3c');
+    return message.channel.send({ embeds: [embed] });
+  }
+
+  if (rawRoleDays && (Number.isNaN(roleDays) || roleDays < 0)) {
+    const embed = new EmbedBuilder()
+      .setTitle('✧˚₊‧ ✖ INVALID ROLE TIME ‧₊˚✧')
+      .setDescription('Role time must be **0 or a positive number of days**.')
       .setColor('#e74c3c');
     return message.channel.send({ embeds: [embed] });
   }
@@ -146,6 +160,7 @@ async function handleAddItem({ message, args }) {
     priceSilv,
     spawnChance,
     roleId: roleId || null,
+    roleDays,
   });
 
   await item.save();
@@ -161,6 +176,9 @@ async function handleAddItem({ message, args }) {
         `**Silv**      »  ${priceSilv} ${SILV_TOKEN_ITEM.emoji}`,
         `**Chance**    »  ${spawnChance}%`,
         roleId ? `**Role**      »  <@&${roleId}>` : '',
+        roleId && roleDays
+          ? `**Role time** »  ${roleDays} day(s)`
+          : '',
       ].filter(Boolean).join('\n'),
     )
     .setColor('#2ecc71');
@@ -226,7 +244,7 @@ async function handleBuy({ message, args, userData, saveUserData }) {
 
   userData.inventory = userData.inventory || {};
   const coins = userData.balance || 0;
-  const silv = userData.inventory[SILV_TOKEN_ITEM.name] || 0; // "Silv token"
+  const silv = userData.inventory[SILV_TOKEN_ITEM.name] || 0;
 
   // ---- BUY SILV TOKEN ----
   if (itemId === SILV_TOKEN_ITEM.id) {
@@ -246,8 +264,6 @@ async function handleBuy({ message, args, userData, saveUserData }) {
     }
 
     userData.balance = coins - SILV_TOKEN_ITEM.priceCoins;
-
-    // store using item.name, same as buy.js
     userData.inventory[SILV_TOKEN_ITEM.name] =
       (userData.inventory[SILV_TOKEN_ITEM.name] || 0) + 1;
 
@@ -306,7 +322,6 @@ async function handleBuy({ message, args, userData, saveUserData }) {
       return message.channel.send({ embeds: [embed] });
     }
 
-    // subtract from same key "Silv token"
     userData.inventory[SILV_TOKEN_ITEM.name] =
       (userData.inventory[SILV_TOKEN_ITEM.name] || 0) - item.priceSilv;
   } else if (item.priceCoins > 0) {
@@ -333,12 +348,28 @@ async function handleBuy({ message, args, userData, saveUserData }) {
     return message.channel.send({ embeds: [embed] });
   }
 
+  // Give role if needed (with optional expiry)
   if (item.roleId) {
     try {
       const member = await message.guild.members.fetch(message.author.id);
       const role = message.guild.roles.cache.get(item.roleId);
       if (role && !member.roles.cache.has(item.roleId)) {
         await member.roles.add(item.roleId);
+
+        // If roleDays > 0, schedule removal
+        if (item.roleDays && item.roleDays > 0) {
+          const ms = item.roleDays * 24 * 60 * 60 * 1000;
+          setTimeout(async () => {
+            try {
+              const freshMember = await message.guild.members.fetch(message.author.id);
+              if (freshMember.roles.cache.has(item.roleId)) {
+                await freshMember.roles.remove(item.roleId);
+              }
+            } catch (e) {
+              console.error('Failed to remove timed role:', e);
+            }
+          }, ms);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -366,8 +397,17 @@ async function handleBuy({ message, args, userData, saveUserData }) {
         value: `**${userData.inventory[SILV_TOKEN_ITEM.name] || 0}x**`,
         inline: true,
       },
-    )
-    .setColor('#27ae60')
+      item.roleId
+        ? {
+            name: '👑 Role',
+            value:
+              item.roleDays && item.roleDays > 0
+                ? `<@&${item.roleId}> for **${item.roleDays} day(s)**`
+                : `<@&${item.roleId}> (permanent)`,
+            inline: false,
+          }
+        : null,
+    ).setColor('#27ae60')
     .setTimestamp()
     .setFooter({ text: 'System • Shop' });
 
@@ -398,6 +438,7 @@ async function showShop({ message }) {
         priceSilv: 0,
         roleId: null,
         spawnChance: SILV_TOKEN_ITEM.spawnChance,
+        roleDays: 0,
       });
     }
 
@@ -463,12 +504,17 @@ async function showShop({ message }) {
         ? `${it.priceSilv} ${SILV_TOKEN_ITEM.emoji}`
         : `${it.priceCoins.toLocaleString()} 💰`;
       const chanceText = `${it.spawnChance ?? 100}%`;
+      const roleInfo =
+        it.roleId &&
+        (it.roleDays && it.roleDays > 0
+          ? `\n> **Role**   »  <@&${it.roleId}> for **${it.roleDays} day(s)**`
+          : `\n> **Role**   »  <@&${it.roleId}>`);
 
       value +=
         `\n**${it.name}** \`${it.itemId}\`\n` +
         `> **Price**  »  ${priceText}\n` +
         `> **Chance** »  ${chanceText}` +
-        (it.roleId ? `\n> **Role**   »  <@&${it.roleId}>` : '') +
+        (roleInfo || '') +
         '\n';
     }
 
