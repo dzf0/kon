@@ -1,261 +1,203 @@
 const { EmbedBuilder } = require('discord.js');
 
-const SILV_ROLE_ID = '1452178800459645026'; // Users with this role can customize
+// ROLE THAT UNLOCKS EXCLUSIVE PROFILE + CUSTOMIZATION
+const EXCLUSIVE_ROLE_ID = '1452178800459645026';
 
 module.exports = {
   name: 'profile',
-  description: 'View and customize your profile. SILV role unlocks customization!',
-  async execute({ message, args, userData, saveUserData }) {
-    const targetUser = message.mentions.users.first() || message.author;
-    
-    // Get target user's member object to check their roles
+  description: 'View a profile. Special role = exclusive customizable profile.',
+  async execute({ message, args, userData, saveUserData, getUserData }) {
+    const mentioned = message.mentions.users.first();
+    const targetUser = mentioned || message.author;
+    const isSelf = targetUser.id === message.author.id;
+
+    const sub = args[0]?.toLowerCase();
+
+    // Load DB data for the TARGET user
+    const targetData = isSelf
+      ? userData
+      : await getUserData(targetUser.id);
+
+    // Fetch GuildMember for role checks
     const targetMember = await message.guild.members.fetch(targetUser.id).catch(() => null);
-    
-    // Viewing someone else's profile
-    if (targetUser.id !== message.author.id) {
-      return viewProfile(message, targetUser, userData, targetMember);
-    }
+    const isExclusive = !!targetMember?.roles.cache.has(EXCLUSIVE_ROLE_ID);
 
-    // Own profile management
-    const subcommand = args[0]?.toLowerCase();
-
-    if (subcommand === 'customize') {
-      // Check SILV role for customization
-      if (!message.member.roles.cache.has(SILV_ROLE_ID)) {
-        return message.channel.send(
-          '❌ Only SILV members can customize profiles!'
-        );
-      }
-
-      const customOption = args[1]?.toLowerCase();
-
-      if (customOption === 'color') {
-        const color = args[2];
-        if (!color || !color.match(/^#[0-9A-F]{6}$/i)) {
-          return message.channel.send(
-            'Usage: `.profile customize color #HEXCODE`\n' +
-            'Example: `.profile customize color #FF0000`'
-          );
-        }
-
-        userData.profileColor = color;
-        await saveUserData({ profileColor: color });
-        
-        const embed = new EmbedBuilder()
-          .setTitle('✅ Profile Color Updated')
-          .setDescription(`Your profile color is now **${color}**`)
-          .setColor(color)
-          .setTimestamp();
-        
-        return message.channel.send({ embeds: [embed] });
-      }
-
-      if (customOption === 'bio') {
-        const bio = args.slice(2).join(' ');
-        if (!bio) {
-          return message.channel.send('Usage: `.profile customize bio <your bio (max 100 chars)>`');
-        }
-        if (bio.length > 100) {
-          return message.channel.send('❌ Bio must be under 100 characters!');
-        }
-
-        userData.profileBio = bio;
-        await saveUserData({ profileBio: bio });
-        
-        return message.channel.send(`✅ Bio updated to: **${bio}**`);
-      }
-
-      if (customOption === 'banner') {
-        const bannerText = args.slice(2).join(' ');
-        if (!bannerText) {
-          return message.channel.send('Usage: `.profile customize banner <text (max 50 chars)>`');
-        }
-        if (bannerText.length > 50) {
-          return message.channel.send('❌ Banner text must be under 50 characters!');
-        }
-
-        userData.profileBanner = bannerText;
-        await saveUserData({ profileBanner: bannerText });
-        
-        const embed = new EmbedBuilder()
-          .setTitle('✅ Banner Updated')
-          .setDescription(`Your banner is now: **${bannerText}**`)
-          .setColor('#F5E6FF')
-          .setTimestamp();
-        
-        return message.channel.send({ embeds: [embed] });
-      }
-
-      return message.channel.send(
-        '**SILV Member Customization:**\n' +
-        '`.profile customize color #HEXCODE` - Change profile color\n' +
-        '`.profile customize bio <text>` - Add/update bio (max 100 chars)\n' +
-        '`.profile customize banner <text>` - Add banner text (max 50 chars)'
-      );
-    }
-
-    if (subcommand === 'reset') {
-      if (!message.member.roles.cache.has(SILV_ROLE_ID)) {
-        return message.channel.send('❌ Only SILV members can reset customization!');
-      }
-
-      userData.profileColor = undefined;
-      userData.profileBio = undefined;
-      userData.profileBanner = undefined;
-
-      await saveUserData({ 
-        profileColor: null,
-        profileBio: null,
-        profileBanner: null
+    // CUSTOMIZATION ONLY: self + .profile customize ...
+    if (isSelf && sub === 'customize') {
+      return handleCustomize({
+        message,
+        args: args.slice(1),
+        userData,
+        saveUserData,
       });
-
-      return message.channel.send('✅ Profile customization reset to default!');
     }
 
-    // View own profile
-    return viewProfile(message, message.author, userData, message.member);
-  }
+    // SHOW PROFILE (self or other)
+    return showProfile({
+      message,
+      targetUser,
+      userData: targetData,
+      isExclusive,
+      isSelf,
+    });
+  },
 };
 
-function viewProfile(message, user, userData, targetMember) {
-  // Check if TARGET USER has SILV role (not the command user)
-  const isSilvMember = targetMember?.roles.cache.has('1382513369801555988') || false;
-  const profileColor = userData.profileColor || '#F5E6FF';
-  const profileBio = userData.profileBio || 'No bio set';
-  const profileBanner = userData.profileBanner || null;
+// =============== CUSTOMIZATION HELPERS (SELF ONLY) ===============
 
-  // Build header - simple username only
-  let headerBlock =
-    '╭───────────────────────────────────────────╮\n' +
-    `│  ${user.username.toUpperCase().padEnd(41)} │\n`;
-  
-  // SILV badge line - ONLY if THEY have the role
-  if (isSilvMember) {
-    headerBlock +=
-      '│  ⭐ SILV MEMBER ⭐                        │\n';
+async function handleCustomize({ message, args, userData, saveUserData }) {
+  const option = args[0]?.toLowerCase();
+
+  if (!option) {
+    return message.channel.send(
+      '**Exclusive Profile Customization:**\n' +
+      '`.profile customize color #HEXCODE`\n' +
+      '`.profile customize bio <text>`\n' +
+      '`.profile customize banner <text>`'
+    );
   }
-  
-  // Banner - ONLY if they set one AND have SILV role
-  if (profileBanner && isSilvMember) {
-    headerBlock +=
-      `│  ✨ ${profileBanner.padEnd(37)} ✨ │\n`;
+
+  // Color: ONLY users with exclusive role can change it
+  if (option === 'color') {
+    const member = message.member;
+    const hasRole = member.roles.cache.has(EXCLUSIVE_ROLE_ID);
+    if (!hasRole) {
+      return message.channel.send('❌ Only exclusive members can change profile color.');
+    }
+
+    const color = args[1];
+    if (!color || !/^#[0-9A-F]{6}$/i.test(color)) {
+      return message.channel.send('Usage: `.profile customize color #HEXCODE`');
+    }
+
+    userData.profileColor = color;
+    await saveUserData({ profileColor: color });
+    return message.channel.send(`✅ Profile color set to **${color}**`);
   }
-  
-  headerBlock +=
-    '╰───────────────────────────────────────────╯';
 
-  const embed = new EmbedBuilder()
-    .setTitle(`˗ˏˋ 𐙚 🎮 ${user.username}'s Profile 𐙚 ˎˊ˗`)
-    .setDescription(
-      [
-        headerBlock,
-        '',
-        `**Bio:** _${profileBio}_`,
-        ''
-      ].join('\n')
-    )
-    .setColor(profileColor)
-    .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
-    .setTimestamp();
+  if (option === 'bio') {
+    const bio = args.slice(1).join(' ');
+    if (!bio) return message.channel.send('Usage: `.profile customize bio <text>`');
+    if (bio.length > 100) return message.channel.send('❌ Bio must be ≤ 100 characters.');
 
-  // Economy Stats
-  const silv = userData.inventory?.silv_token || 0;
-  const balance = userData.balance || 0;
+    userData.profileBio = bio;
+    await saveUserData({ profileBio: bio });
+    return message.channel.send('✅ Bio updated.');
+  }
 
-  const economyValue =
-    `🪙 **Coins:** \`${balance.toLocaleString()}\`\n` +
-    `🜂 **SILV Tokens:** \`${silv}\``;
+  if (option === 'banner') {
+    const banner = args.slice(1).join(' ');
+    if (!banner) return message.channel.send('Usage: `.profile customize banner <text>`');
+    if (banner.length > 50) return message.channel.send('❌ Banner must be ≤ 50 characters.');
 
-  embed.addFields({
-    name: '💰 ECONOMY',
-    value: economyValue,
-    inline: true
+    userData.profileBanner = banner;
+    await saveUserData({ profileBanner: banner });
+    return message.channel.send('✅ Banner updated.');
+  }
+
+  return message.channel.send('Unknown option. Use: `color`, `bio`, or `banner`.');
+}
+
+// =============== PROFILE DISPLAY ===============
+
+function showProfile({ message, targetUser, userData, isExclusive, isSelf }) {
+  // Debug: see what color is coming from DB
+  console.log('PROFILE DEBUG', {
+    id: targetUser.id,
+    username: targetUser.username,
+    profileColor: userData.profileColor,
   });
 
-  // Character Collection
-  const characters = userData.characters || {};
-  const characterCount = Object.keys(characters).length;
-  const characterTiers = Object.values(characters).reduce((acc, char) => {
-    acc[char.tier] = (acc[char.tier] || 0) + 1;
+  // Persistent profile fields (from Mongo)
+  const color = userData.profileColor || '#2b2d31';
+  const bio = userData.profileBio || 'No bio set.';
+  const banner = userData.profileBanner || null;
+
+  // Economy
+  const coins = userData.balance || 0;
+  const silv = userData.inventory?.silv_token || 0;
+
+  // Characters
+  const chars = userData.characters || [];
+  const charCount = Array.isArray(chars) ? chars.length : 0;
+
+  const tiers = (Array.isArray(chars) ? chars : []).reduce((acc, ch) => {
+    if (!ch?.tier) return acc;
+    acc[ch.tier] = (acc[ch.tier] || 0) + 1;
     return acc;
   }, {});
 
-  let characterValue = `**Total:** ${characterCount}`;
-  if (characterCount > 0) {
-    characterValue += '\n';
-    if (characterTiers.S) characterValue += `**S Tier:** ${characterTiers.S}\n`;
-    if (characterTiers.A) characterValue += `**A Tier:** ${characterTiers.A}\n`;
-    if (characterTiers.B) characterValue += `**B Tier:** ${characterTiers.B}\n`;
-    if (characterTiers.C) characterValue += `**C Tier:** ${characterTiers.C}`;
-  } else {
-    characterValue += '\n_(No characters yet)_';
+  // Header box
+  let header =
+    '╭──────────────────────────────────────────╮\n' +
+    `│  ${targetUser.username.toUpperCase().padEnd(38)} │\n`;
+
+  if (isExclusive) {
+    header += '│  ⭐ EXCLUSIVE MEMBER ⭐                  │\n';
+    if (banner) {
+      header += `│  ✨ ${banner.padEnd(34)} ✨ │\n`;
+    }
+  }
+
+  header += '╰──────────────────────────────────────────╯';
+
+  const embed = new EmbedBuilder()
+    .setTitle(`˗ˏˋ 𐙚 ${targetUser.username}'s Profile 𐙚 ˎˊ˗`)
+    .setDescription(`${header}\n\n**Bio:** _${bio}_`)
+    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+    .setColor(color) // always use stored color
+    .setTimestamp();
+
+  // Economy field
+  embed.addFields({
+    name: '💰 ECONOMY',
+    value:
+      `• Coins: \`${coins.toLocaleString()}\`\n` +
+      `• <:SILV_TOKEN:1447678878448484555> SILV Tokens: \`${silv}\``,
+    inline: true,
+  });
+
+  // Characters field
+  let charText = `• Total: **${charCount}**`;
+  if (charCount > 0) {
+    if (tiers.S) charText += `\n• S Tier: ${tiers.S}`;
+    if (tiers.A) charText += `\n• A Tier: ${tiers.A}`;
+    if (tiers.B) charText += `\n• B Tier: ${tiers.B}`;
+    if (tiers.C) charText += `\n• C Tier: ${tiers.C}`;
   }
 
   embed.addFields({
     name: '⭐ CHARACTERS',
-    value: characterValue,
-    inline: true
-  });
-
-  // Exclusive Items
-  const exclusiveItems = Object.entries(userData.inventory || {})
-    .filter(([key]) => 
-      key.toLowerCase().includes('mythic') || 
-      key.toLowerCase().includes('silv') ||
-      key.toLowerCase().includes('rare') ||
-      key.toLowerCase().includes('legendary')
-    )
-    .map(([item, count]) => `**${item}:** ${count}`)
-    .slice(0, 5);
-
-  embed.addFields({
-    name: '🎁 EXCLUSIVE ITEMS',
-    value: exclusiveItems.length > 0 ? exclusiveItems.join('\n') : '_(No exclusive items yet)_',
-    inline: true
+    value: charText,
+    inline: true,
   });
 
   // Achievements
   const achievements = [];
-  if (silv >= 5) achievements.push('🜂 SILV Collector');
-  if (characterCount >= 10) achievements.push('⭐ Character Enthusiast');
-  if (characterCount >= 50) achievements.push('🌟 Character Master');
-  if (balance >= 1000000) achievements.push('💰 Million Coins');
-  if (isSilvMember) achievements.push('✨ SILV Member');
+  if (charCount >= 10) achievements.push('⭐ Character Enthusiast');
+  if (charCount >= 50) achievements.push('🌟 Character Master');
+  if (silv >= 5) achievements.push('🜂 SILV Holder');
+  if (isExclusive) achievements.push('✨ Exclusive Profile');
 
-  if (achievements.length > 0) {
+  if (achievements.length) {
     embed.addFields({
       name: '🏆 ACHIEVEMENTS',
       value: achievements.join(' • '),
-      inline: false
+      inline: false,
     });
   }
 
-  // Customization info - ONLY show if user has SILV role AND it's their own profile
-  if (message.author.id === user.id) {
-    if (isSilvMember) {
-      // SILV members see full customization commands
-      embed.addFields({
-        name: '⚙️ SILV CUSTOMIZATION',
-        value: 
-          '`.profile customize color #HEXCODE`\n' +
-          '`.profile customize bio <text>`\n' +
-          '`.profile customize banner <text>`\n' +
-          '`.profile reset`',
-        inline: false
-      });
-    } else {
-      // Non-SILV members see lock message only
-      embed.addFields({
-        name: '🔒 CUSTOMIZATION LOCKED',
-        value: 'Get SILV role to unlock profile customization.',
-        inline: false
-      });
-    }
+  // Show customization help only for self + exclusive role
+  if (isSelf && isExclusive) {
+    embed.addFields({
+      name: '⚙️ PROFILE CUSTOMIZATION',
+      value:
+        '`.profile customize color #HEXCODE`\n' +
+        '`.profile customize bio <text>`\n' +
+        '`.profile customize banner <text>`',
+      inline: false,
+    });
   }
-
-  embed.setFooter({ 
-    text: isSilvMember ? '✨ SILV Member Profile | Fully Customized' : 'Profile | Get SILV to customize' 
-  });
 
   return message.channel.send({ embeds: [embed] });
 }

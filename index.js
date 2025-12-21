@@ -19,6 +19,11 @@ const userSchema = new mongoose.Schema({
   inventory: { type: Object, default: {} },
   lastDaily: { type: Date, default: null },
   characters: { type: Array, default: [] },
+
+  // profile fields
+  profileColor: { type: String, default: null },
+  profileBio: { type: String, default: null },
+  profileBanner: { type: String, default: null },
 });
 
 const User = mongoose.model('User', userSchema);
@@ -32,12 +37,20 @@ const adminLogSchema = new mongoose.Schema({
   targetUserId: { type: String },
   targetUsername: { type: String },
   details: { type: String },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
 const AdminLog = mongoose.model('AdminLog', adminLogSchema);
 
-async function logAdminAction(adminId, adminUsername, command, action, targetUserId = null, targetUsername = null, details = '') {
+async function logAdminAction(
+  adminId,
+  adminUsername,
+  command,
+  action,
+  targetUserId = null,
+  targetUsername = null,
+  details = ''
+) {
   try {
     const log = new AdminLog({
       adminId,
@@ -47,7 +60,7 @@ async function logAdminAction(adminId, adminUsername, command, action, targetUse
       targetUserId,
       targetUsername,
       details,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
     await log.save();
   } catch (error) {
@@ -114,7 +127,13 @@ let guessGame = {
 async function getUserData(userId) {
   let user = await User.findOne({ userId });
   if (!user) {
-    user = new User({ userId, balance: 0, inventory: {}, lastDaily: null, characters: [] });
+    user = new User({
+      userId,
+      balance: 0,
+      inventory: {},
+      lastDaily: null,
+      characters: [],
+    });
     await user.save();
   }
   return user.toObject();
@@ -199,7 +218,7 @@ client.on('messageCreate', async (message) => {
 
   // ===== RESTRICT KEY CHANNEL =====
   const KEYS_CHANNEL_ID = '1401925188991582338';
-  const allowedInKeysChannel = ['redeem', 'hangman', 'inventory', 'inv','bal', 'baltop', 'claim'];
+  const allowedInKeysChannel = ['redeem', 'hangman', 'inventory', 'inv', 'bal', 'baltop', 'claim'];
 
   if (
     message.channel.id === KEYS_CHANNEL_ID &&
@@ -222,7 +241,9 @@ client.on('messageCreate', async (message) => {
 
     if (now < expirationTime) {
       const remaining = ((expirationTime - now) / 1000).toFixed(1);
-      return message.channel.send(`⏳ Please wait **${remaining}s** before using \`${prefix}${command.name}\` again.`);
+      return message.channel.send(
+        `⏳ Please wait **${remaining}s** before using \`${prefix}${command.name}\` again.`
+      );
     }
   }
 
@@ -285,7 +306,7 @@ async function startBot() {
       console.error('Mongo disconnected');
     });
 
-    await mongoose.connect(process.env.MONGO_URI); // wait for connection[web:172][web:185]
+    await mongoose.connect(process.env.MONGO_URI); // wait for connection[web:358][web:360]
     console.log('Connected to MongoDB');
 
     await client.login(process.env.DISCORD_TOKEN);

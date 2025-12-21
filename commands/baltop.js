@@ -45,19 +45,19 @@ module.exports = {
           // Top 1 boxed line
           leaderboard +=
             '╭──────────────────────────────╮\n' +
-            `│  ① ${lineText} │\n` +
+            `│  ① ${lineText}               │\n` +
             '╰──────────────────────────────╯\n';
         } else if (rank === 2) {
           // Top 2 boxed line
           leaderboard +=
             '╭──────────────────────────────╮\n' +
-            `│  ② ${lineText} │\n` +
+            `│  ② ${lineText}               │\n` +
             '╰──────────────────────────────╯\n';
         } else if (rank === 3) {
           // Top 3 boxed line
           leaderboard +=
             '╭──────────────────────────────╮\n' +
-            `│  ③ ${lineText} │\n` +
+            `│  ③ ${lineText}               │\n` +
             '╰──────────────────────────────╯\n';
         } else {
           // Normal entries
