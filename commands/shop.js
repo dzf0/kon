@@ -3,6 +3,10 @@ const mongoose = require('mongoose');
 
 // ================== CONFIG ==================
 const SHOP_ADMIN_ROLE_ID = '1382513369801555988';
+const SHOP_ADMIN_USER_IDS = [
+  '1349792214124986419', // add yourself
+  // 'ANOTHER_USER_ID',
+];
 
 // Inventory storage key for Silv token (same as buy.js: item.name)
 const SILV_TOKEN_KEY = 'Silv token';
@@ -69,18 +73,30 @@ module.exports = {
     }
 
     if (sub === 'buy') {
-      return handleBuy({ message, args: args.slice(1), userData, saveUserData });
+      return handleBuy({
+        message,
+        args: args.slice(1),
+        userData,
+        saveUserData,
+      });
     }
 
     return showShop({ message });
   },
 };
 
+// helper: shop admin check
+function isShopAdmin(member) {
+  const hasRole = member.roles.cache.has(SHOP_ADMIN_ROLE_ID);
+  const isWhitelisted = SHOP_ADMIN_USER_IDS.includes(member.id);
+  return hasRole || isWhitelisted;
+}
+
 // ================== ADMIN: ADD ITEM ==================
 // .shop add (name) (item_id) (category) (priceCoins) (priceSilv) (chance 0-100) [roleId] [roleDays]
 async function handleAddItem({ message, args }) {
   const member = message.member;
-  if (!member.roles.cache.has(SHOP_ADMIN_ROLE_ID)) {
+  if (!isShopAdmin(member)) {
     const embed = new EmbedBuilder()
       .setTitle('✧˚₊‧ ✖ PERMISSION DENIED ‧₊˚✧')
       .setDescription('You **cannot** manage the shop.')
@@ -124,7 +140,12 @@ async function handleAddItem({ message, args }) {
   const roleId = rawRoleId || null;
   const roleDays = rawRoleDays ? Number(rawRoleDays) : 0;
 
-  if (Number.isNaN(priceCoins) || priceCoins < 0 || Number.isNaN(priceSilv) || priceSilv < 0) {
+  if (
+    Number.isNaN(priceCoins) ||
+    priceCoins < 0 ||
+    Number.isNaN(priceSilv) ||
+    priceSilv < 0
+  ) {
     const embed = new EmbedBuilder()
       .setTitle('✧˚₊‧ ✖ INVALID PRICE ‧₊˚✧')
       .setDescription('All prices must be **0 or positive numbers**.')
@@ -183,10 +204,10 @@ async function handleAddItem({ message, args }) {
         `**Silv**      »  ${priceSilv} ${SILV_TOKEN_ITEM.emoji}`,
         `**Chance**    »  ${spawnChance}%`,
         roleId ? `**Role**      »  <@&${roleId}>` : '',
-        roleId && roleDays
-          ? `**Role time** »  ${roleDays} day(s)`
-          : '',
-      ].filter(Boolean).join('\n'),
+        roleId && roleDays ? `**Role time** »  ${roleDays} day(s)` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     )
     .setColor('#2ecc71');
   return message.channel.send({ embeds: [embed] });
@@ -195,7 +216,7 @@ async function handleAddItem({ message, args }) {
 // ================== ADMIN: REMOVE ITEM ==================
 async function handleRemoveItem({ message, args }) {
   const member = message.member;
-  if (!member.roles.cache.has(SHOP_ADMIN_ROLE_ID)) {
+  if (!isShopAdmin(member)) {
     const embed = new EmbedBuilder()
       .setTitle('✧˚₊‧ ✖ PERMISSION DENIED ‧₊˚✧')
       .setDescription('You **cannot** manage the shop.')
@@ -215,7 +236,9 @@ async function handleRemoveItem({ message, args }) {
   if (itemId === SILV_TOKEN_ITEM.id) {
     const embed = new EmbedBuilder()
       .setTitle('🛡 PROTECTED ITEM')
-      .setDescription('**Silv token** is a core shop item and **cannot** be removed.')
+      .setDescription(
+        '**Silv token** is a core shop item and **cannot** be removed.',
+      )
       .setColor('#e67e22');
     return message.channel.send({ embeds: [embed] });
   }
@@ -376,10 +399,17 @@ async function handleBuy({ message, args, userData, saveUserData }) {
       const member = await message.guild.members.fetch(message.author.id);
       const role = message.guild.roles.cache.get(item.roleId);
 
-      console.log('SHOP ROLE DEBUG » resolved role =', role && role.id, role && role.name);
+      console.log(
+        'SHOP ROLE DEBUG » resolved role =',
+        role && role.id,
+        role && role.name,
+      );
 
       if (!role) {
-        console.log('SHOP ROLE DEBUG » role not found in this guild for id', item.roleId);
+        console.log(
+          'SHOP ROLE DEBUG » role not found in this guild for id',
+          item.roleId,
+        );
       }
 
       if (role && !member.roles.cache.has(item.roleId)) {
@@ -391,7 +421,9 @@ async function handleBuy({ message, args, userData, saveUserData }) {
           const ms = item.roleDays * 24 * 60 * 60 * 1000;
           setTimeout(async () => {
             try {
-              const freshMember = await message.guild.members.fetch(message.author.id);
+              const freshMember = await message.guild.members.fetch(
+                message.author.id,
+              );
               if (freshMember.roles.cache.has(item.roleId)) {
                 await freshMember.roles.remove(role);
                 console.log('SHOP ROLE DEBUG » timed role removed');
@@ -476,7 +508,8 @@ async function showShop({ message }) {
 
     const silvRoll = Math.random() * 100;
     if (silvRoll < SILV_TOKEN_ITEM.spawnChance) {
-      byCategory[SILV_TOKEN_ITEM.category] = byCategory[SILV_TOKEN_ITEM.category] || [];
+      byCategory[SILV_TOKEN_ITEM.category] =
+        byCategory[SILV_TOKEN_ITEM.category] || [];
       byCategory[SILV_TOKEN_ITEM.category].push({
         itemId: SILV_TOKEN_ITEM.id,
         name: SILV_TOKEN_ITEM.name,
@@ -518,7 +551,8 @@ async function showShop({ message }) {
   if (Object.keys(byCategory).length === 0) {
     embed.addFields({
       name: '🛒  TODAY\'S SHOP',
-      value: '**Nothing spawned this cycle.**\nCome back after the next refresh.',
+      value:
+        '**Nothing spawned this cycle.**\nCome back after the next refresh.',
       inline: false,
     });
 
