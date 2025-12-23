@@ -27,7 +27,7 @@ module.exports = {
       });
     }
 
-    const roleId = '1452178800459645026'; // SILV MEMBER
+    const roleId = '1453001577995567298'; // SILV MEMBER
 
     const member = await message.guild.members.fetch(message.author.id);
     const role = message.guild.roles.cache.get(roleId);
