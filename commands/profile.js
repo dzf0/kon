@@ -55,12 +55,9 @@ async function handleCustomize({ message, args, userData, saveUserData }) {
 
   if (!option) {
     return message.channel.send(
-      '**Exclusive Profile Customization:**
-' +
-        '`.profile customize color #HEXCODE`
-' +
-        '`.profile customize bio <text>`
-' +
+      '**Exclusive Profile Customization:**' +
+        '`.profile customize color #HEXCODE`' +
+        '`.profile customize bio <text>`' +
         '`.profile customize banner <text>`',
     );
   }
