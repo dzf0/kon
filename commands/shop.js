@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
 
 // ================== CONFIG ==================
-const SHOP_ADMIN_ROLE_ID = '1382513369801555988';
+const SHOP_ADMIN_ROLE_ID = '1454818862397653074';
 const SHOP_ADMIN_USER_IDS = [
   '1349792214124986419', // add yourself
   // 'ANOTHER_USER_ID',
@@ -517,3 +517,4 @@ async function showShop({ message }) {
   return message.channel.send({ embeds: [embed] });
 }
     
+
