@@ -33,7 +33,7 @@ const CATEGORY_EMOJIS = {
   Mythical: '🧿',
   
   // NEW: Categories WITH SPACES + Custom Emojis
-  'Silv Shop': '<:zzSilver:1423148985673318400>',
+  'Silv Shop': '<:zzPlatinum:1423148989590540430>',
   'Rare Items': '⭐',
   'Special Roles': '🏆',
   'VIP Lounge': '💎',
@@ -539,4 +539,5 @@ async function showShop({ message }) {
   embed.setFooter({ text: 'Shop refreshes every 4 hours', iconURL: message.author.displayAvatarURL() });
   return message.channel.send({ embeds: [embed] });
 }
+
 
