@@ -31,16 +31,11 @@ const CATEGORY_EMOJIS = {
   Cosmetics: '✨',
   Exclusive: '💎',
   Mythical: '🧿',
-  
-  // NEW: Categories WITH SPACES + Custom Emojis
   'Silv Shop': '<:zzPlatinum:1423148989590540430>',
   'Rare Items': '⭐',
   'Special Roles': '🏆',
   'VIP Lounge': '💎',
   'Event Items': '🎉',
-  'Anime Skins': '🎌',
-  'Gaming Gear': '🎮',
-  'Mystic Crates': '✨',
 };
 
 let shopCache = {
@@ -96,57 +91,41 @@ function isShopAdmin(member) {
   return hasRole || isWhitelisted;
 }
 
-// ================== SMART PARSE WITH CATEGORY SPACES ==================
+// ================== PERFECTLY FIXED PARSE - EXACT MATCHING ==================
 function parseAddArgs(args) {
   if (args.length < 6) return null;
 
-  let nameParts = [];
-  let itemId, categoryParts = [], priceCoins, priceSilv, spawnChance;
-  let roleId = null;
-  let roleDays = 0;
-  let foundNumbers = false;
+  // PERFECT parsing: name itemId categoryWords... priceCoins priceSilv spawnChance
+  const name = args[0];                    // 1st = name
+  const itemId = args[1].toLowerCase();    // 2nd = itemId
+  
+  // Find where numbers start (last 3 args)
+  const priceCoins = Number(args[args.length - 3]);
+  const priceSilv = Number(args[args.length - 2]);
+  const spawnChance = Number(args[args.length - 1]);
 
-  // Smart parsing: name → itemId → category (until numbers) → numbers
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    const num = Number(arg);
-    
+  // Category = everything between itemId and numbers
+  let categoryParts = [];
+  for (let i = 2; i < args.length - 3; i++) {
+    const num = Number(args[i]);
     if (Number.isNaN(num)) {
-      // Non-number
-      if (!itemId) {
-        // First non-number after name collection = itemId
-        if (nameParts.length > 0) {
-          itemId = arg.toLowerCase();
-        } else {
-          nameParts.push(arg);
-        }
-      } else if (!foundNumbers) {
-        // After itemId, before numbers = category
-        categoryParts.push(arg);
-      } else {
-        // After numbers = name overflow
-        nameParts.push(arg);
-      }
+      categoryParts.push(args[i]);
     } else {
-      // Found first number - switch to number mode
-      foundNumbers = true;
-      if (!priceCoins) priceCoins = num;
-      else if (!priceSilv) priceSilv = num;
-      else if (!spawnChance) spawnChance = num;
-      else if (!roleDays) roleDays = num;
+      break;
     }
   }
+  
+  const category = categoryParts.join(' ') || 'Items';
+  let roleId = null;
+  let roleDays = 0;
 
-  // Last 2 args could be roleId + roleDays
-  if (args.length >= 8) {
-    roleId = args[args.length - 2];
+  // Handle role args if present (9+ args total)
+  if (args.length >= 9) {
+    roleId = args[args.length - 3];
     roleDays = Number(args[args.length - 1]) || 0;
   }
 
-  const name = (nameParts.length > 0 ? nameParts.join(' ') : 'Unnamed Item');
-  const category = categoryParts.join(' ') || 'Items';
-
-  // Validation
+  // FINAL VALIDATION
   if (!itemId || !category || 
       Number.isNaN(priceCoins) || priceCoins < 0 ||
       Number.isNaN(priceSilv) || priceSilv < 0 ||
@@ -175,13 +154,11 @@ async function handleAddItem({ message, args }) {
       .setDescription(
         [
           '```',
-          '.shop add [name] (item_id) [category words] (priceCoins) (priceSilv) (chance)',
-          '[name] = optional, ( ) = required',
+          '.shop add (name) (itemId) [category words] (coins) (silv) (chance%) [roleId] [days]',
           '',
-          'Examples:',
-          '.shop add Invites invite "Silv Shop" 0 1 60',
-          '.shop add "Golden Sword" gold_sword "Rare Items" 50000 0 25',
-          '.shop add VIP vip "Special Roles" 0 5 75 123456789 30',
+          '✅ .shop add Invites invite Silv Shop 0 1 60',
+          '✅ .shop add Sword sword Weapons 1000 0 25',
+          '✅ .shop add VIP vip "VIP Lounge" 0 5 75 123456789 30',
           '```',
         ].join('\n'),
       )
@@ -539,5 +516,4 @@ async function showShop({ message }) {
   embed.setFooter({ text: 'Shop refreshes every 4 hours', iconURL: message.author.displayAvatarURL() });
   return message.channel.send({ embeds: [embed] });
 }
-  
-
+    
