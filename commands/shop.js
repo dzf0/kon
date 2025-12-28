@@ -30,7 +30,7 @@ const CATEGORY_EMOJIS = {
   Cosmetics: '✨',
   Exclusive: '💎',
   Mythical: '🧿',
-  'Silv Shop': '<:zzPlatinum:1423148989590540430>'
+  'Silv Shop':'<:zzPlatinum:1423148989590540430>',
 };
 
 let shopCache = {
@@ -127,7 +127,7 @@ async function handleAddItem({ message, args }) {
       .setTitle('˗ˏˋ 📜 SHOP ADD USAGE ˎˊ˗')
       .setDescription(
         [
-          '`````',
+          '```',
           '.shop add (name with spaces) (item_id) (category) (priceCoins) (priceSilv) (chance 0-100) [roleId] [roleDays]',
           '',
           'Example:',
@@ -574,7 +574,4 @@ async function showShop({ message }) {
   });
 
   return message.channel.send({ embeds: [embed] });
-                               }
-
-
-
+}
