@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 
-const ADMIN_ROLE_ID = '1382513369801555988'; // same as in admin.js
+const ADMIN_ROLE_ID = '1454818862397653074'; // same as in admin.js
 const ADMIN_USER_IDS = [
   '1349792214124986419', // add yourself
   // 'ANOTHER_USER_ID',
