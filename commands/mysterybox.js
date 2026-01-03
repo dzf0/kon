@@ -77,16 +77,11 @@ module.exports = {
       });
     }
     
-    // Remove one Mystery Box
-    userData.inventory[MYSTERY_BOX_KEY]--;
-    if (userData.inventory[MYSTERY_BOX_KEY] === 0) {
-      delete userData.inventory[MYSTERY_BOX_KEY];
-    }
-    
-    // Get random reward
+    // Get random reward BEFORE removing the box
     const rewardType = getRandomReward();
     let rewardMessage = '';
     let rewardEmoji = '';
+    let roleSuccess = false;
     
     if (rewardType.type === 'role') {
       // Role reward
@@ -95,17 +90,79 @@ module.exports = {
       
       if (role) {
         try {
+          // Check if member already has the role
+          if (message.member.roles.cache.has(roleId)) {
+            rewardEmoji = '⚠️';
+            rewardMessage = `You already have the **${role.name}** role! (No box consumed)`;
+            
+            return message.channel.send({
+              embeds: [
+                new EmbedBuilder()
+                  .setColor('#F5E6FF')
+                  .setTitle('✧˚₊‧ 📦 𝕄𝕪𝕤𝕥𝕖𝕣𝕪 𝔹𝕠𝕩 ‧₊˚✧')
+                  .setDescription(
+                    [
+                      '꒰ঌ 𝔶𝔬𝔲 𝔞𝔩𝔯𝔢𝔞𝔡𝔶 𝔥𝔞𝔳𝔢 𝔱𝔥𝔦𝔰 𝔯𝔬𝔩𝔢 ໒꒱',
+                      '',
+                      `${rewardEmoji} ${rewardMessage}`,
+                      '',
+                      `**Remaining Mystery Boxes:** ${userData.inventory[MYSTERY_BOX_KEY] || 0}`,
+                    ].join('\n')
+                  )
+                  .setFooter({ text: 'System • Role Already Owned' }),
+              ],
+            });
+          }
+          
           await message.member.roles.add(roleId);
           rewardEmoji = '👑';
           rewardMessage = `**${role.name}** role!`;
+          roleSuccess = true;
         } catch (error) {
           console.error('Error adding role:', error);
           rewardEmoji = '❌';
-          rewardMessage = `Failed to add role (permission error)`;
+          rewardMessage = `Failed to add role (permission error) - Box not consumed`;
+          
+          return message.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setColor('#F5E6FF')
+                .setTitle('✧˚₊‧ 📦 𝕄𝕪𝕤𝕥𝕖𝕣𝕪 𝔹𝕠𝕩 𝔼𝕣𝕣𝕠𝕣 ‧₊˚✧')
+                .setDescription(
+                  [
+                    '꒰ঌ 𝔰𝔬𝔪𝔢𝔱𝔥𝔦𝔫𝔤 𝔴𝔢𝔫𝔱 𝔴𝔯𝔬𝔫𝔤 ໒꒱',
+                    '',
+                    `${rewardEmoji} ${rewardMessage}`,
+                    '',
+                    'Contact an admin to fix bot permissions.',
+                    `**Remaining Mystery Boxes:** ${userData.inventory[MYSTERY_BOX_KEY] || 0}`,
+                  ].join('\n')
+                )
+                .setFooter({ text: 'System • Permission Error' }),
+            ],
+          });
         }
       } else {
         rewardEmoji = '⚠️';
-        rewardMessage = `Role not found (contact admin)`;
+        rewardMessage = `Role not found (contact admin) - Box not consumed`;
+        
+        return message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('#F5E6FF')
+              .setTitle('✧˚₊‧ 📦 𝕄𝕪𝕤𝕥𝕖𝕣𝕪 𝔹𝕠𝕩 𝔼𝕣𝕣𝕠𝕣 ‧₊˚✧')
+              .setDescription(
+                [
+                  '꒰ঌ 𝔯𝔬𝔩𝔢 𝔫𝔬𝔱 𝔣𝔬𝔲𝔫𝔡 ໒꒱',
+                  '',
+                  `${rewardEmoji} ${rewardMessage}`,
+                  '',
+                  `**Remaining Mystery Boxes:** ${userData.inventory[MYSTERY_BOX_KEY] || 0}`,
+                ].join('\n')
+              )
+              .setFooter({ text: 'System • Configuration Error' }),
+          ],
+        });
       }
       
     } else if (rewardType.type === 'silv') {
@@ -130,7 +187,13 @@ module.exports = {
       rewardMessage = `**${amount}x Legendary Key${amount > 1 ? 's' : ''}**!`;
     }
     
-    // Save user data - FIXED: only pass the updated fields
+    // Remove one Mystery Box (only if we reached here)
+    userData.inventory[MYSTERY_BOX_KEY]--;
+    if (userData.inventory[MYSTERY_BOX_KEY] === 0) {
+      delete userData.inventory[MYSTERY_BOX_KEY];
+    }
+    
+    // Save user data
     await saveUserData({ 
       inventory: userData.inventory 
     });
