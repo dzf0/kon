@@ -15,7 +15,7 @@ const ALLOWED_USER_IDS = [
 
 module.exports = {
   name: 'r',
-  description: 'Assign a role to a user (restricted access)',
+  description: 'Toggle role on/off for a user (restricted access)',
   async execute({ message, args }) {
     // Check if user has ANY allowed role OR is in allowed users
     const hasAllowedRole = ALLOWED_ROLE_IDS.some(roleId => 
@@ -41,7 +41,7 @@ module.exports = {
           new EmbedBuilder()
             .setColor('Orange')
             .setTitle('⚠️ Invalid Usage')
-            .setDescription('**Usage:** `.r @user @role` or `.r <userId> <roleId>`')
+            .setDescription('**Usage:** `.r @user @role` or `.r <userId> <roleId>`\n**Toggles role on/off!**')
         ]
       });
     }
@@ -82,62 +82,96 @@ module.exports = {
       });
     }
 
-    // Check if user already has the role
+    // TOGGLE LOGIC: ADD if they don't have it, REMOVE if they do
     if (targetUser.roles.cache.has(targetRole.id)) {
-      return message.channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor('Yellow')
-            .setTitle('ℹ️ Already Has Role')
-            .setDescription(`${targetUser} already has the **${targetRole.name}** role.`)
-        ]
-      });
-    }
-
-    // Try to add the role
-    try {
-      await targetUser.roles.add(targetRole.id);
-      
-      const successEmbed = new EmbedBuilder()
-        .setColor('Green')
-        .setTitle('✅ Role Added!')
-        .setDescription(`Successfully gave **${targetRole.name}** to ${targetUser}! 👑`)
-        .addFields(
-          { name: 'User', value: `${targetUser.user.tag}`, inline: true },
-          { name: 'Role', value: `${targetRole.name}`, inline: true },
-          { name: 'Added By', value: `${message.author.tag}`, inline: true }
-        )
-        .setTimestamp();
-      
-      message.channel.send({ embeds: [successEmbed] });
-      
-    } catch (error) {
-      console.error('ROLE ADD ERROR:', error);
-      
-      if (error.code === 50001) {
-        return message.channel.send({
+      // REMOVE role
+      try {
+        await targetUser.roles.remove(targetRole.id);
+        
+        const removeEmbed = new EmbedBuilder()
+          .setColor('Blue')
+          .setTitle('✅ Role Removed!')
+          .setDescription(`Successfully removed **${targetRole.name}** from ${targetUser}! ❌`)
+          .addFields(
+            { name: 'User', value: `${targetUser.user.tag}`, inline: true },
+            { name: 'Role', value: `${targetRole.name}`, inline: true },
+            { name: 'Removed By', value: `${message.author.tag}`, inline: true }
+          )
+          .setTimestamp();
+        
+        message.channel.send({ embeds: [removeEmbed] });
+        
+      } catch (error) {
+        console.error('ROLE REMOVE ERROR:', error);
+        
+        if (error.code === 50001) {
+          return message.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setColor('Red')
+                .setTitle('❌ Missing Access')
+                .setDescription(
+                  `**Bot cannot manage \`${targetRole.name}\` role!**\n\n` +
+                  `**Fix:** Move **bot role ABOVE** \`${targetRole.name}\` in Server Settings → Roles`
+                )
+            ]
+          });
+        }
+        
+        message.channel.send({
           embeds: [
             new EmbedBuilder()
               .setColor('Red')
-              .setTitle('❌ Missing Access')
-              .setDescription(
-                `**Bot cannot assign \`${targetRole.name}\` role!**\n\n` +
-                `**Fix this by:**\n` +
-                `• Move **bot role ABOVE** \`${targetRole.name}\` in Server Settings → Roles\n` +
-                `• Ensure bot has **"Manage Roles"** permission`
-              )
+              .setTitle('❌ Failed to Remove Role')
+              .setDescription(`Error: ${error.message}`)
           ]
         });
       }
       
-      message.channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setColor('Red')
-            .setTitle('❌ Failed to Add Role')
-            .setDescription(`Error: ${error.message}`)
-        ]
-      });
+    } else {
+      // ADD role
+      try {
+        await targetUser.roles.add(targetRole.id);
+        
+        const addEmbed = new EmbedBuilder()
+          .setColor('Green')
+          .setTitle('✅ Role Added!')
+          .setDescription(`Successfully gave **${targetRole.name}** to ${targetUser}! 👑`)
+          .addFields(
+            { name: 'User', value: `${targetUser.user.tag}`, inline: true },
+            { name: 'Role', value: `${targetRole.name}`, inline: true },
+            { name: 'Added By', value: `${message.author.tag}`, inline: true }
+          )
+          .setTimestamp();
+        
+        message.channel.send({ embeds: [addEmbed] });
+        
+      } catch (error) {
+        console.error('ROLE ADD ERROR:', error);
+        
+        if (error.code === 50001) {
+          return message.channel.send({
+            embeds: [
+              new EmbedBuilder()
+                .setColor('Red')
+                .setTitle('❌ Missing Access')
+                .setDescription(
+                  `**Bot cannot assign \`${targetRole.name}\` role!**\n\n` +
+                  `**Fix:** Move **bot role ABOVE** \`${targetRole.name}\` in Server Settings → Roles`
+                )
+            ]
+          });
+        }
+        
+        message.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor('Red')
+              .setTitle('❌ Failed to Add Role')
+              .setDescription(`Error: ${error.message}`)
+          ]
+        });
+      }
     }
   },
 };
