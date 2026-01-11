@@ -6,13 +6,11 @@ const mongoose = require('mongoose');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const keydrop = require('./commands/keydrop.js');
 
-
 // Start Express server to keep bot awake
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is running'));
 app.listen(PORT, () => console.log(`Web server started on port ${PORT}`));
-
 
 // ===== MONGODB SETUP =====
 const userSchema = new mongoose.Schema({
@@ -26,9 +24,7 @@ const userSchema = new mongoose.Schema({
   profileBanner: { type: String, default: null },
 });
 
-
 const User = mongoose.model('User', userSchema);
-
 
 const adminLogSchema = new mongoose.Schema({
   adminId: { type: String, required: true },
@@ -41,9 +37,7 @@ const adminLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-
 const AdminLog = mongoose.model('AdminLog', adminLogSchema);
-
 
 async function logAdminAction(
   adminId,
@@ -71,7 +65,6 @@ async function logAdminAction(
   }
 }
 
-
 // ===== DB HELPERS =====
 async function getUserData(userId) {
   let user = await User.findOne({ userId });
@@ -88,11 +81,9 @@ async function getUserData(userId) {
   return user.toObject();
 }
 
-
 async function saveUserData(userId, userData) {
   await User.updateOne({ userId }, { $set: userData }, { upsert: true });
 }
-
 
 async function updateUserBalance(userId, amount) {
   const user = await User.findOneAndUpdate(
@@ -103,14 +94,12 @@ async function updateUserBalance(userId, amount) {
   return user.toObject();
 }
 
-
 async function addKeyToInventory(userId, rarity, quantity) {
   const user = await getUserData(userId);
   user.inventory = user.inventory || {};
   user.inventory[rarity] = (user.inventory[rarity] || 0) + quantity;
   await saveUserData(userId, { inventory: user.inventory });
 }
-
 
 // ===== DISCORD CLIENT SETUP =====
 const client = new Client({
@@ -119,36 +108,30 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildMembers,  // ⬅️ ADDED: Required for member.roles.add()
+    GatewayIntentBits.GuildMembers,
   ],
 });
-
 
 client.commands = new Collection();
 const prefix = '.';
 
-
-// Ready event listener (BEFORE startBot)
+// Ready event listener
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 });
-
 
 // Global cooldowns
 const cooldowns = new Map();
 const COOLDOWN_MS = 5000;
 
-
 // Load commands dynamically (exclude keydrop.js)
 const commandsPath = path.join(__dirname, 'commands');
-let commandsModule = null; // Store reference to commands.js
-
+let commandsModule = null;
 
 if (fs.existsSync(commandsPath)) {
   const commandFiles = fs
     .readdirSync(commandsPath)
     .filter(file => file.endsWith('.js') && file !== 'keydrop.js');
-
 
   for (const file of commandFiles) {
     try {
@@ -157,7 +140,6 @@ if (fs.existsSync(commandsPath)) {
         client.commands.set(command.name, command);
         console.log(`Loaded command: ${command.name}`);
         
-        // Store reference to commands.js module
         if (command.name === 'commands') {
           commandsModule = command;
         }
@@ -167,7 +149,6 @@ if (fs.existsSync(commandsPath)) {
     }
   }
 }
-
 
 // Rarity config
 const rarities = [
@@ -179,7 +160,6 @@ const rarities = [
   { name: 'Common', chance: 0.20 },
 ];
 
-
 const rewardsByRarity = {
   Prismatic: { min: 500, max: 1000 },
   Mythical: { min: 300, max: 600 },
@@ -189,13 +169,11 @@ const rewardsByRarity = {
   Common: { min: 10, max: 50 },
 };
 
-
 let guessGame = {
   active: false,
   number: null,
   channelId: null,
 };
-
 
 function getRandomRarity() {
   const roll = Math.random();
@@ -207,11 +185,120 @@ function getRandomRarity() {
   return rarities[rarities.length - 1].name;
 }
 
-
 // ===== MESSAGE HANDLER =====
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
+  const userId = message.author.id;
+
+  // ===== CIPHER GAME ANSWER CHECKER =====
+  if (global.activeChallenges && global.activeChallenges.has(userId)) {
+    const challenge = global.activeChallenges.get(userId);
+    
+    // Check if message is in the same channel
+    if (message.channel.id === challenge.channelId) {
+      const userAnswer = message.content.toUpperCase().trim();
+      
+      // Ignore if it's a command
+      if (!userAnswer.startsWith(prefix)) {
+        challenge.attempts++;
+
+        // Check if answer matches
+        if (userAnswer === challenge.answer) {
+          const timeTaken = Date.now() - challenge.startTime;
+          const timeInSeconds = Math.floor(timeTaken / 1000);
+          
+          // Clear timeout
+          clearTimeout(challenge.timeoutId);
+          
+          // Determine reward based on time
+          let finalReward = challenge.baseReward;
+          let rewardType = 'Normal Clear';
+          let rewardColor = 'Green';
+          
+          if (timeTaken < challenge.speedBonus) {
+            finalReward = challenge.speedReward;
+            rewardType = '⚡ SPEED BONUS!';
+            rewardColor = 'Gold';
+          }
+
+          // Add reward to user balance
+          const userData = await getUserData(userId);
+          userData.balance += finalReward;
+          await saveUserData(userId, userData);
+
+          // Remove challenge
+          global.activeChallenges.delete(userId);
+
+          // Calculate profit
+          const profit = finalReward - challenge.betAmount;
+
+          // Send success embed
+          const successEmbed = new EmbedBuilder()
+            .setColor(rewardColor)
+            .setTitle('🎉 CHALLENGE COMPLETED!')
+            .setDescription(
+              `${message.author} **CRACKED THE CODE!**\n\n` +
+              `✅ **Correct Answer:** \`${challenge.answer}\`\n` +
+              `⏱️ **Time Taken:** ${timeInSeconds} seconds\n` +
+              `🎯 **Attempts:** ${challenge.attempts}\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `💰 **Bet Amount:** ${challenge.betAmount} coins\n` +
+              `🏆 **${rewardType}:** ${finalReward} coins\n` +
+              `📈 **Net Profit:** +${profit} coins\n` +
+              `💳 **New Balance:** ${userData.balance} coins\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `${timeTaken < challenge.speedBonus ? '⚡ **LIGHTNING FAST!** You earned the 3x multiplier!' : '🎊 Well done, Code Breaker!'}`
+            )
+            .setTimestamp();
+
+          message.channel.send({ embeds: [successEmbed] });
+          return;
+
+        } else if (challenge.attempts >= 10) {
+          // Too many wrong attempts
+          clearTimeout(challenge.timeoutId);
+          global.activeChallenges.delete(userId);
+
+          const userData = await getUserData(userId);
+          const failEmbed = new EmbedBuilder()
+            .setColor('Red')
+            .setTitle('❌ TOO MANY ATTEMPTS!')
+            .setDescription(
+              `${message.author}, you've made too many incorrect attempts!\n\n` +
+              `**The correct answer was:** \`${challenge.answer}\`\n\n` +
+              `💀 **Lost:** ${challenge.betAmount} coins\n` +
+              `📊 **Current Balance:** ${userData.balance} coins\n` +
+              `*Practice your cipher skills and try again!*`
+            )
+            .setTimestamp();
+
+          message.channel.send({ embeds: [failEmbed] });
+          return;
+
+        } else {
+          // Wrong answer but still has attempts left
+          message.react('❌');
+          
+          if (challenge.attempts === 3 || challenge.attempts === 6) {
+            message.channel.send({
+              embeds: [
+                new EmbedBuilder()
+                  .setColor('Orange')
+                  .setTitle('❌ Incorrect!')
+                  .setDescription(
+                    `That's not right, ${message.author}.\n\n` +
+                    `🎯 **Attempts Used:** ${challenge.attempts}/10\n` +
+                    `⏰ Time is ticking... Keep trying!`
+                  )
+              ]
+            });
+          }
+          return;
+        }
+      }
+    }
+  }
 
   // Passive key drop
   try {
@@ -219,7 +306,6 @@ client.on('messageCreate', async (message) => {
   } catch (error) {
     console.error('Error in keydrop:', error);
   }
-
 
   // Guessing game
   if (guessGame.active && message.channel.id === guessGame.channelId) {
@@ -231,18 +317,15 @@ client.on('messageCreate', async (message) => {
         const rewardAmount =
           Math.floor(Math.random() * (rewardRange.max - rewardRange.min + 1)) + rewardRange.min;
 
-
         const userData = await getUserData(message.author.id);
         userData.inventory = userData.inventory || {};
         userData.inventory[wonRarity] = (userData.inventory[wonRarity] || 0) + 1;
         userData.balance += rewardAmount;
 
-
         await saveUserData(message.author.id, {
           inventory: userData.inventory,
           balance: userData.balance,
         });
-
 
         const winEmbed = new EmbedBuilder()
           .setTitle('Game Winner!')
@@ -252,9 +335,7 @@ client.on('messageCreate', async (message) => {
           .setColor('Gold')
           .setTimestamp();
 
-
         message.channel.send({ embeds: [winEmbed] });
-
 
         guessGame.active = false;
         guessGame.number = null;
@@ -264,52 +345,41 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-
   if (!message.content.startsWith(prefix)) return;
-
 
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
   const command = client.commands.get(commandName);
   if (!command) return;
 
-
   // ===== CHECK IF COMMANDS ARE DISABLED =====
   if (commandsModule && !commandsModule.areCommandsEnabled()) {
-    // If commands are disabled and user is not admin, block everything (silent)
     if (!commandsModule.canToggleCommands(message.member)) {
       return;
     }
   }
 
-
-  // If trying to use .commands command, check admin permission first (silent block)
   if (commandName === 'commands') {
     if (!commandsModule || !commandsModule.canToggleCommands(message.member)) {
       return;
     }
   }
 
-
   // Keys channel restriction
   const KEYS_CHANNEL_ID = '1401925188991582338';
-  const allowedInKeysChannel = ['tkd','admin','claim', 'redeem', 'hangman', 'inventory', 'inv', 'bal', 'baltop', 'profile', 'setchannel','commands'];
-
+  const allowedInKeysChannel = ['tkd','admin','claim', 'redeem', 'hangman', 'inventory', 'inv', 'bal', 'baltop', 'profile', 'setchannel','commands','cipher'];
 
   if (message.channel.id === KEYS_CHANNEL_ID && !allowedInKeysChannel.includes(command.name)) {
     return;
   }
-
 
   // Cooldown check
   if (!cooldowns.has(command.name)) {
     cooldowns.set(command.name, new Map());
   }
 
-
   const now = Date.now();
   const timestamps = cooldowns.get(command.name);
-
 
   if (timestamps.has(message.author.id)) {
     const expirationTime = timestamps.get(message.author.id) + COOLDOWN_MS;
@@ -321,15 +391,12 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-
   timestamps.set(message.author.id, now);
   setTimeout(() => timestamps.delete(message.author.id), COOLDOWN_MS);
-
 
   // Execute command
   try {
     const userData = await getUserData(message.author.id);
-
 
     await command.execute({
       message,
@@ -358,7 +425,6 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-
 // ===== START BOT =====
 async function startBot() {
   try {
@@ -366,15 +432,12 @@ async function startBot() {
       console.error('❌ MongoDB connection error:', err);
     });
 
-
     mongoose.connection.on('disconnected', () => {
       console.log('⚠️ MongoDB disconnected');
     });
 
-
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
-
 
     await client.login(process.env.DISCORD_TOKEN);
     console.log('🔄 Bot login initiated...');
@@ -383,6 +446,5 @@ async function startBot() {
     process.exit(1);
   }
 }
-
 
 startBot();
